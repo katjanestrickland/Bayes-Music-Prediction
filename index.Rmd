@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-I fit a two-component mixture model to the distribution of popularity averages, one that represents the normal songs, and another that represents``hit tracks". As we don't observe the grouping of songs in the data generation process (i.e. Spotify doesn't have a 'hit track' variable), then we consider this a missing data problem, and turn to the EM algorithm to identify which of the two components the data came from. A normal-normal mixture model will do well here, as the distribution of popularity appears to be bimodal. We can assume a general mixture model where the outcome is in one of two distributions:
+I fit a two-component mixture model to the distribution of popularity averages, one that represents songs with average popularity, and another that represents``hit tracks". As we don't observe the grouping of songs in the data generation process (i.e. Spotify doesn't have a 'hit track' variable), then we consider this a missing data problem, and turn to the EM algorithm to identify which of the two components the data came from. A normal-normal mixture model will do well here, as the distribution of popularity appears to be bimodal. We can assume a general mixture model where the outcome is in one of two distributions:
 
 
 $$
@@ -35,44 +35,254 @@ In the expectation step, the expected indicator for every single observation (wh
 
 Figure: A histogram of the popularity averages with curves for both instances of the fitted densities using the MLE of the mixture components is below. I checked for multiple modes by running the EM algorithm starting from many different starting values.
 
-## Vignette Info
+```{r message=FALSE, warning=FALSE, include=TRUE, fig.width= 7, fig.height= 8}
 
-Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
+library(tidyverse)
 
-## Styles
+load("/cloud/project/data/output_bayes.Rdata")
+merge <- merge %>%
+  select(track_name, artist_name, key_mode, popularity_index)
+merge <- merge %>%
+  arrange(track_name, popularity_index) %>%
+  filter(duplicated(track_name) == FALSE)
+merge <- merge[- grep("-", merge$track_name),]
+merge <- merge[- grep("live", merge$track_name),]
+merge <- merge[- grep("Live", merge$track_name),]
+merged_new<- merge %>%
+  group_by(artist_name, key_mode) %>%
+  select(artist_name, key_mode, popularity_index, track_name) %>%
+  filter(popularity_index >0)
+merged_new$popularity_index <- as.numeric(merged_new$popularity_index)
+merged_new <- merged_new %>%
+  group_by(artist_name, key_mode) %>%  
+  mutate(n = n()) %>%
+  ungroup() %>%
+  group_by(artist_name,key_mode)%>%
+  summarise(mean_pop = mean(popularity_index)) %>%
+  mutate(mean_pop = mean_pop/100)
+### aggregated data
+aggregated_data <- merged_new
+save(aggregated_data, file = "/cloud/project/data/aggregated_data.Rdata")
+## only Velvet Underground
+load("/cloud/project/data/total_data.Rdata")
+merged_new<- merged_new %>%
+  filter(artist_name == "The Velvet Underground") %>%
+  group_by(artist_name, key_mode) %>%
+  select(artist_name, key_mode, popularity_index) %>%
+  filter(popularity_index >0)
+merged_new$popularity_index <- as.numeric(merged_new$popularity_index)
+merged_new <- merged_new %>%
+  group_by(artist_name, key_mode) %>%  
+  mutate(n = n()) %>%
+  ungroup() %>%
+  group_by(artist_name,key_mode, n) %>%
+  summarise(mean_pop = popularity_index) %>%
+  mutate(mean_pop = mean_pop/100)
+velvet_underground<- merged_new
+save(velvet_underground, file = "/cloud/project/data/velvet_underground.Rdata")
 
-The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
 
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
+## only Beyonce
+load("/cloud/project/data/total_data.Rdata")
+merged_new<- merged_new %>%
+  filter(artist_name == "Beyoncé") %>%
+  group_by(artist_name, key_mode) %>%
+  select(artist_name, key_mode, popularity_index) %>%
+  filter(popularity_index >0)
+merged_new$popularity_index <- as.numeric(merged_new$popularity_index)
+merged_new <- merged_new %>%
+  group_by(artist_name, key_mode) %>%  
+  mutate(n = n()) %>%
+  ungroup() %>%
+  group_by(artist_name,key_mode, n) %>%
+  summarise(mean_pop = popularity_index) %>%
+  mutate(mean_pop = mean_pop/100)
+beyonce<- merged_new
+save(beyonce, file = "/cloud/project/data/beyonce.Rdata")
 
-## Figures
+## only Cash
+load("/cloud/project/data/total_data.Rdata")
+merged_new<- merged_new %>%
+  filter(artist_name == "Johnny Cash") %>%
+  group_by(artist_name, key_mode) %>%
+  select(artist_name, key_mode, popularity_index) %>%
+  filter(popularity_index >0)
+merged_new$popularity_index <- as.numeric(merged_new$popularity_index)
+merged_new <- merged_new %>%
+  group_by(artist_name, key_mode) %>%  
+  mutate(n = n()) %>%
+  ungroup() %>%
+  group_by(artist_name,key_mode, n) %>%
+  summarise(mean_pop = popularity_index) %>%
+  mutate(mean_pop = mean_pop/100)
+cash <- merged_new
+save(cash, file = "/cloud/project/data/cash.Rdata")
 
-The figure sizes have been customised so that you can easily put two images side-by-side. 
 
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+load("/cloud/project/data/aggregated_data.Rdata")
+set <- as.data.frame(table(merged_new$artist_name, merged_new$key_mode))
+load("/cloud/project/data/velvet_underground.Rdata")
+load("/cloud/project/data/beyonce.Rdata")
+load("/cloud/project/data/cash.Rdata")
+clean_data <- merged_new
+
+
+
+
+par(mfrow=c(2,2))
+####
+### step 2: visualize popularity
+####
+library(ggpubr)
+library(gridExtra)
+clean_data <-
+  clean_data %>%
+  mutate(key_mode = fct_reorder(key_mode, mean_pop))
+## only Vevlet
+velvet_underground <- velvet_underground %>%
+  filter(artist_name == "The Velvet Underground")
+## only Beyoncé
+Beyoncé <- beyonce %>%
+  filter(artist_name == "Beyoncé")
+## only Cash
+cash <- cash %>%
+  filter(artist_name == "Johnny Cash")
+
+b1<- ggplot(data = aggregated_data, aes(x= reorder(factor(key_mode), mean_pop), y = mean_pop)) +
+  stat_summary(fun.data = mean_se) +
+  coord_flip() +
+  ggtitle("All Data")+
+  ylab("Mean Popularity Score") +
+  xlab(NULL) +
+  theme_minimal()
+b2<- ggplot(data = velvet_underground, aes(x= reorder(factor(key_mode), mean_pop), y = mean_pop)) +
+  stat_summary(fun.data = mean_se) +
+  coord_flip() +
+  ggtitle("The Velvet Underground")+
+  ylab("Mean Popularity Score") +
+  xlab(NULL) +
+  theme_minimal()
+n3<- ggplot(data = beyonce, aes(x= reorder(factor(key_mode), mean_pop), y = mean_pop)) +
+  stat_summary(fun.data = mean_se) +
+  coord_flip() +
+  ggtitle("Beyoncé")+
+  ylab("Mean Popularity Score") +
+  xlab(NULL) +
+  theme_minimal()
+n4<- ggplot(data = cash, aes(x= reorder(factor(key_mode), mean_pop), y = mean_pop)) +
+  stat_summary(fun.data = mean_se) +
+  coord_flip() +
+  ggtitle("Johnny Cash")+
+  ylab("Mean Popularity Score") +
+  xlab(NULL) +
+  theme_minimal()
+
+
+ggarrange(b1, b2, n3, n4)
+
+
+
 ```
 
-You can enable figure captions by `fig_caption: yes` in YAML:
+```{r}
+####
+### step 4: EM prediction
+####
 
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
 
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
+load("/cloud/project/data/aggregated_data.Rdata")
+clean_data <- aggregated_data
+#Calculating mean_pop
+clean_data$mean_pop <- as.numeric(clean_data$mean_pop)
+mean_pop <- clean_data$mean_pop
+hist(mean_pop)
+artist <-  clean_data$artist_name
+key_mode <- clean_data$key_mode
 
-## More Examples
+#Expectation function
+Estep <- function(y,alpha,mu0,mu1,sigsq0,sigsq1){
+  n <- length(y)  
+  ind <- rep(NA,n)
+  for (i in 1:n){
+    prob0 <- (1-alpha)*dnorm(y[i],mean=mu0,sd=sqrt(sigsq0))
+    prob1 <- alpha*dnorm(y[i],mean=mu1,sd=sqrt(sigsq1))
+    ind[i] <- prob1/(prob0+prob1)
+  }
+  ind
+}
 
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
+#Maximization function
+Mstep <- function(y,ind){
+  n <- length(y)
+  alpha <- sum(ind)/n
+  mu1 <- sum(ind*y)/sum(ind)
+  mu0 <- sum((1-ind)*y)/sum(1-ind)
+  sigsq1 <- sum(ind*((y-mu1)^2))/sum(ind)
+  sigsq0 <- sum((1-ind)*((y-mu0)^2))/sum(1-ind)
+  c(alpha,mu0,mu1,sigsq0,sigsq1)
+}
 
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
+##observed data loglikelihood function
+loglik.mix <- function(y,ind,alpha,mu0,mu1,sigsq0,sigsq1){
+  loglik <- sum(log(alpha*dnorm(y,mu1,sqrt(sigsq1))+(1-alpha)*dnorm(y,mu0,sqrt(sigsq0))))
+  loglik
+}
+#Running EM iterations
+curalpha <- 0.5
+curmu0 <- 0.1
+curmu1 <- 0.4
+cursigsq0 <- 0.03
+cursigsq1 <- 0.03
+mean(mean_pop)
+curind <- Estep(mean_pop,curalpha,curmu0,curmu1,cursigsq0,cursigsq1)
+loglik <- loglik.mix(mean_pop,curind,curalpha,curmu0,curmu1,cursigsq0,cursigsq1)
+itermat <- c(curalpha,curmu0,curmu1,cursigsq0,cursigsq1,loglik)
+diff <- 1
+numiters <- 1
+while (diff > 0.001 || numiters <= 100){
+  curind <- Estep(mean_pop,curalpha,curmu0,curmu1,cursigsq0,cursigsq1)
+  curparam <- Mstep(mean_pop,curind)
+  curalpha <- curparam[1]
+  curmu0 <- curparam[2]
+  curmu1 <- curparam[3]
+  cursigsq0 <- curparam[4]
+  cursigsq1 <- curparam[5]
+  itermat <- rbind(itermat,c(curparam,loglik))
+  loglik <- loglik.mix(mean_pop,curind,curalpha,curmu0,curmu1,cursigsq0,cursigsq1)
+  numiters <- numiters + 1
+  diff <- max(abs(itermat[numiters,]-itermat[numiters-1,])) 
+  # print (c(numiters,loglik))
+}
+parametertext <- c("alpha","mu0","mu1","sigsq0","sigsq1","loglik")
+par(mfrow=c(2,3))
+for (i in 1:6){
+  plot(1:numiters,itermat[,i],main=parametertext[i],xlab="Iterations",ylab="Value")
+}
+# plotting fitted mixture density
+finalparam<-itermat[numiters,]
+alpha <- finalparam[1]
+mu0 <- finalparam[2]
+mu1 <- finalparam[3]
+sigsq0 <- finalparam[4]
+sigsq1 <- finalparam[5]
+par(mfrow=c(1,1))
+
+plot1<- hist(mean_pop,prob=T, main= "MLE Densities for Unique Variances")
+x <- ppoints(1000)*0.9
+y1 <- (1-alpha)*dnorm(x,mu0,sqrt(sigsq0))
+y2 <- alpha*dnorm(x,mu1,sqrt(sigsq1))
+## mu 0 is 0.07, and mu1 is .32
+lines(x,y1,col=2)
+lines(x,y2,col=3)
+## 50 percent are popular
+alpha
+plot1
+
+#Getting Individual probabilities for each player
+finalindprops <- Estep(mean_pop,alpha,mu0,mu1,sigsq0, sigsq1)
+
+hist(finalindprops)
+sum(finalindprops > 0.90)
+players.topHR<-clean_data[finalindprops > 0.90,1:3]
+players.topHR
 ```
-
-Also a quote using `>`:
-
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
