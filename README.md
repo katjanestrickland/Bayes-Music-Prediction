@@ -1,6 +1,8 @@
 # Bayes-Music-Prediction
 hierarchical bayes mixture model, predicting hits in experimental music
 
-# project link
+### Project Page
+
+[Markdown Link](https://katjanewilson.github.io/Bayes-Music-Prediction/)
 
 # citations
