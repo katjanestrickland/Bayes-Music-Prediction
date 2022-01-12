@@ -1,0 +1,7 @@
+### to add in
+
+The red ddistribution are the normal songs who aren't hits and the greens are the hits. But the problem is that the mean of a hit is super high, so even if you are not having a hit in that key, then you still have a probability of it becing a hit? 
+
+So, instead, we can make a single version of sigma squared. Force the copmonents to have the same variance. 
+
+Now, we can pull out the ones t
