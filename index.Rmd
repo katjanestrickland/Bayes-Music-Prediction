@@ -16,30 +16,54 @@ knitr::opts_chunk$set(
 )
 ```
 
-I fit a two-component mixture model to the distribution of popularity averages, one that represents songs with average popularity, and another that represents``hit tracks". As we don't observe the grouping of songs in the data generation process (i.e. Spotify doesn't have a 'hit track' variable), then we consider this a missing data problem, and turn to the EM algorithm to identify which of the two components the data came from. A normal-normal mixture model will do well here, as the distribution of popularity appears to be bimodal. We can assume a general mixture model where the outcome is in one of two distributions:
+## Intro to the Spotify Data - Keys and Popularity
+
+Using the Spotify API, I pulled the discogrpahies of 15 bands that cross range of musical style. With over 100 songs per band, the Spotify API gives us data on 40 measured variables, including album name, track name, duration, tempo, and many more.
 
 
-$$
-\begin{equation}
-y =  Normal(\mu, \sigma^2)
-\end{equation}
-
-\begin{equation}
-y =  Normal(\mu, \sigma^2)
-\end{equation}
-$$
-
-
-In the expectation step, the expected indicator for every single observation (whether the observation is in the popular or un-popular group) is calculated. The following step takes these indicator values from the E step, and outputs new values for the parameters. In other words, the E step takes in current parameter values and outputs estimated values for the indicators. The M step takes in values for the indicators and outputs values for the parameters. I hypothesize that there bands will create less hit songs than they do regular tracks. Running the EM algorithm from these starting points, estimates result in the overall maximum log-likelihood (=360.7) with mu0 at 0.17, mu1 at .33., and alpha at 0.52. This model assigns a high probability to a song being a hit. The overlap in distributions is also troubling. By forcing the two components to have the same variance, alpha becomes 0.26, in tune with our hypothesis of hit song making being a rare event.
-
-
-Figure: A histogram of the popularity averages with curves for both instances of the fitted densities using the MLE of the mixture components is below. I checked for multiple modes by running the EM algorithm starting from many different starting values.
-
-```{r message=FALSE, warning=FALSE, include=TRUE, fig.width= 7, fig.height= 8}
-
+```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 library(tidyverse)
+load("/cloud/project/data/animal_chapter_data.Rdata")
+load("/cloud/project/data/output_bayes (2).Rdata")
+merge <- new_data
+colnames(merge)
+table(merge$artist_name)
 
-load("/cloud/project/data/output_bayes.Rdata")
+```
+
+Looking at the count of raw data, the distribution of keys looks similar to what others have determined to be the most frequented keys on Spotify. The data sample's distribution reflects the distribution of all keys on Spotify: keys of G major, D major and C major (more simple keys with less sharps and flats) are represented the most. 
+
+Key distribution doesn't hold across artists. The band Radiohead wrote more songs in the key of A sharp than Animal Collective, who wrote more in D. This begs the question of how hits are formed among artists. Does a band get better by writing na lot in one key? Could other bands be more likely to land a hit when they write outside of their frequented key?
+
+```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
+par(mfrow=c(1,1))
+clean_data_count <- new_data %>%
+  group_by(key_mode) %>%
+  mutate(value = n()) %>%
+  select(key_mode, mode_name, value) %>%
+  na.omit()
+clean_data_count$mode_name <- as.factor(clean_data_count$mode_name)
+clean_data_count$key_mode <- as.factor(clean_data_count$key_mode)
+ggplot(clean_data_count, aes(x = key_mode,
+                             fill = mode_name, y = value)) +
+  geom_bar(stat = "identity",position = "dodge") +
+  theme(axis.text.x = element_text(angle = 40),
+        legend.title = element_blank(),
+        panel.background = element_blank())+
+  ylab("Count") +
+  xlab("") +
+  scale_fill_manual("legend", values = c("major" = "salmon",
+                                         "minor" = "grey"))
+
+
+
+```
+
+Spotify's popularity index is a number from 0-100 that represents the total number of plays a track has. The popularity of songs in each key within each band will vary based on the variability of that band's key usage.
+
+To determine this,, we only need the artist name, track name, key and popularity index. Let's also remove Live tracks, as the popularity of a live version might conflate the original studio recorded version. A summary statistic (the mean popularity) for each artists' key is computed, from these tracks, and converted to a decimal (probability).
+
+```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 merge <- merge %>%
   select(track_name, artist_name, key_mode, popularity_index)
 merge <- merge %>%
@@ -60,6 +84,20 @@ merged_new <- merged_new %>%
   group_by(artist_name,key_mode)%>%
   summarise(mean_pop = mean(popularity_index)) %>%
   mutate(mean_pop = mean_pop/100)
+head(merged_new)
+```
+We can visualize popularity across keys for this group of artists. Are these differences due to listener demand or due to artist intend? Are Nirvana fans just more sad,
+and the Eminor key will be more popular than the E minor key is popular for say, Beyonce? Nirvana also
+wrote more songs in the keys of Csharp and Gsharp than any other key. However, their most popular songs
+are in more experimental keys, such as Dsharp minor and F minor, and E minor. This begs the question of
+what we come to expect from a band, and how song writing works for bands. The Velvet Underground only
+has one song in F minor, but it is their most popular (the song Sunday Morning, off of Velvet Underground
+and Nico). But The Velvet Underground wrote the most songs in the key of D major, and there is not much
+variability in this key. Could it be because they are less inclined to take risks in that key? The final section
+will touch on this concept of hierarchical variance. First, though, let’s use Bayesian prediction to predict hit
+tracks.
+
+```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=FALSE}
 ### aggregated data
 aggregated_data <- merged_new
 save(aggregated_data, file = "/cloud/project/data/aggregated_data.Rdata")
@@ -148,48 +186,57 @@ Beyoncé <- beyonce %>%
 cash <- cash %>%
   filter(artist_name == "Johnny Cash")
 
-b1<- ggplot(data = aggregated_data, aes(x= reorder(factor(key_mode), mean_pop), y = mean_pop)) +
-  stat_summary(fun.data = mean_se) +
-  coord_flip() +
-  ggtitle("All Data")+
-  ylab("Mean Popularity Score") +
-  xlab(NULL) +
-  theme_minimal()
-b2<- ggplot(data = velvet_underground, aes(x= reorder(factor(key_mode), mean_pop), y = mean_pop)) +
-  stat_summary(fun.data = mean_se) +
-  coord_flip() +
-  ggtitle("The Velvet Underground")+
-  ylab("Mean Popularity Score") +
-  xlab(NULL) +
-  theme_minimal()
-n3<- ggplot(data = beyonce, aes(x= reorder(factor(key_mode), mean_pop), y = mean_pop)) +
-  stat_summary(fun.data = mean_se) +
-  coord_flip() +
-  ggtitle("Beyoncé")+
-  ylab("Mean Popularity Score") +
-  xlab(NULL) +
-  theme_minimal()
-n4<- ggplot(data = cash, aes(x= reorder(factor(key_mode), mean_pop), y = mean_pop)) +
-  stat_summary(fun.data = mean_se) +
-  coord_flip() +
-  ggtitle("Johnny Cash")+
-  ylab("Mean Popularity Score") +
-  xlab(NULL) +
-  theme_minimal()
+```
 
-
-ggarrange(b1, b2, n3, n4)
-
+```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
+'All Data' <- aggregated_data
+'Velvet Underground' <- velvet_underground
+'Beyoncé' <- beyonce
+'Johnny Cash' <- cash
+df_list <- list(`All Data`, `Velvet Underground`, `Beyoncé`, `Johnny Cash`)
+for (i in 1:length(df_list)) {
+  data <- as.data.frame(df_list[i])
+b<- ggplot(data = data, aes(x= reorder(factor(key_mode), mean_pop), y = mean_pop)) +
+  stat_summary(fun.data = mean_se) +
+  coord_flip() +
+  ggtitle(as.character(data[1,1]))+
+  ylab("Mean Popularity Score") +
+  xlab(NULL) +
+  theme_minimal()
+assign(paste("plot", as.character(data[1,1])), b)
+}
+ggarrange(ggarrange(`plot Allman Brothers Band`, `plot Beyoncé`,
+                    `plot Johnny Cash`, `plot The Velvet Underground`))
 
 
 ```
 
-```{r}
-####
-### step 4: EM prediction
-####
+
+## Bayesian Modeling Approach
 
 
+I fit a two-component mixture model to the distribution of popularity averages, one that represents songs with average popularity, and another that represent hit tracks". As we don't observe the grouping of songs in the data generation process (i.e. Spotify doesn't have a 'hit track' variable), then we consider this a missing data problem, and turn to the EM algorithm to identify which of the two components the data came from. A normal-normal mixture model will do well here, as the distribution of popularity appears to be bimodal. We can assume a general mixture model where the outcome is in one of two distributions:
+
+
+$$
+\begin{equation}
+y =  Normal(\mu, \sigma^2)
+\end{equation}
+
+\begin{equation}
+y =  Normal(\mu, \sigma^2)
+\end{equation}
+$$
+
+
+In the expectation step, the expected indicator for every single observation (whether the observation is in the popular or un-popular group) is calculated. The following step takes these indicator values from the E step, and outputs new values for the parameters. In other words, the E step takes in current parameter values and outputs estimated values for the indicators. The M step takes in values for the indicators and outputs values for the parameters. I hypothesize that there bands will create less hit songs than they do regular tracks. Running the EM algorithm from these starting points, estimates result in the overall maximum log-likelihood (=360.7) with mu0 at 0.17, mu1 at .33., and alpha at 0.52. This model assigns a high probability to a song being a hit. The overlap in distributions is also troubling. By forcing the two components to have the same variance, alpha becomes 0.26, in tune with our hypothesis of hit song making being a rare event.
+
+
+Figure: A histogram of the popularity averages with curves for both instances of the fitted densities using the MLE of the mixture components is below. I checked for multiple modes by running the EM algorithm starting from many different starting values.
+
+
+```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
+## EM prediction
 load("/cloud/project/data/aggregated_data.Rdata")
 clean_data <- aggregated_data
 #Calculating mean_pop
@@ -283,6 +330,105 @@ finalindprops <- Estep(mean_pop,alpha,mu0,mu1,sigsq0, sigsq1)
 
 hist(finalindprops)
 sum(finalindprops > 0.90)
-players.topHR<-clean_data[finalindprops > 0.90,1:3]
-players.topHR
+artists.topHR<-clean_data[finalindprops > 0.90,1:3]
+artists.topHR
+
+
+## probability of being a hit song
+### Velvet Underground
+id <- clean_data$artist_name
+player_index <- id == "The Velvet Underground"
+y <- mean_pop
+ind <- curind
+Estep(y[player_index], alpha, mu0, mu1, sigsq0, sigsq1)
+
+### Modest Mouse
+id <- merged_new$artist_name
+player_index <- id == "Modest Mouse"
+y <- mean_pop
+ind <- curind
+Estep(y[player_index], alpha, mu0, mu1, sigsq0, sigsq1)
+
+
+### Nirvana
+id <- merged_new$artist_name
+player_index <- id == "Nirvana"
+y <- mean_pop
+ind <- curind
+Estep(y[player_index], alpha, mu0, mu1, sigsq0, sigsq1)
+
+#EM algorithm for equal-variance model
+Estep2 <- function(y,alpha,mu0,mu1,sigsq){
+  n <- length(y)  
+  ind <- rep(NA,n)
+  for (i in 1:n){
+    prob0 <- (1-alpha)*dnorm(y[i],mean=mu0,sd=sqrt(sigsq))
+    prob1 <- alpha*dnorm(y[i],mean=mu1,sd=sqrt(sigsq))
+    ind[i] <- prob1/(prob0+prob1)
+  }
+  ind
+}
+Mstep2 <- function(y,ind){
+  n <- length(y)
+  alpha <- sum(ind)/n
+  mu1 <- sum(ind*y)/sum(ind)
+  mu0 <- sum((1-ind)*y)/sum(1-ind)
+  sigsq <- sum(ind*((y-mu1)^2))
+  sigsq <- sigsq+sum((1-ind)*((y-mu0)^2))
+  sigsq <- sigsq/n
+  c(alpha,mu0,mu1,sigsq)
+}
+##observed data loglikelihood function for equal variance model
+loglik.mix2 <- function(y,ind,alpha,mu0,mu1,sigsq){
+  loglik <- sum(log(alpha*dnorm(y,mu1,sqrt(sigsq))+(1-alpha)*dnorm(y,mu0,sqrt(sigsq))))
+  loglik
+}
+curalpha <- 0.1
+curmu0 <- 0.001
+curmu1 <- 0.15
+cursigsq <- 0.1
+curind <- Estep2(mean_pop,curalpha,curmu0,curmu1,cursigsq)
+loglik <- loglik.mix2(mean_pop,curind,curalpha,curmu0,curmu1,cursigsq)
+
+itermat2 <- c(curalpha,curmu0,curmu1,cursigsq,loglik)
+diff <- 1
+numiters <- 1
+while (diff > 0.001 || numiters <= 100){
+  curind <- Estep2(mean_pop,curalpha,curmu0,curmu1,cursigsq)
+  curparam <- Mstep2(mean_pop,curind)
+  curalpha <- curparam[1]
+  curmu0 <- curparam[2]
+  curmu1 <- curparam[3]
+  cursigsq <- curparam[4]
+  loglik <- loglik.mix2(mean_pop,curind,curalpha,curmu0,curmu1,cursigsq)
+  itermat2 <- rbind(itermat2,c(curparam,loglik))
+  numiters <- numiters + 1
+  diff <- max(abs(itermat2[numiters,]-itermat2[numiters-1,])) 
+  # print (c(numiters,loglik))
+}
+
+
+#Tracking iterations
+parametertext <- c("alpha","mu0","mu1","sigsq","loglik")
+par(mfrow=c(2,3))
+for (i in 1:5){
+  plot(1:numiters,itermat2[,i],type="l",main=parametertext[i],xlab="Iterations",ylab="Value")
+}
+
+# plotting equal-variances fitted mixture density
+finalparam<-itermat2[numiters,]
+alpha <- finalparam[1]
+mu0 <- finalparam[2]
+mu1 <- finalparam[3]
+sigsq <- finalparam[4]
+par(mfrow=c(1,1))
+plot2<- hist(mean_pop,prob=T, main = "MLE Densities for
+             Fixed Variance")
+x <- ppoints(1000)*0.6
+y1 <- (1-alpha)*dnorm(x,mu0,sqrt(sigsq))
+y2 <- alpha*dnorm(x,mu1,sqrt(sigsq))
+lines(x,y1,col=2)
+lines(x,y2,col=3)
+alpha
+plot2
 ```
