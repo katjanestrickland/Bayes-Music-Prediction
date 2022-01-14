@@ -262,6 +262,7 @@ Estep <- function(y,alpha,mu0,mu1,sigsq0,sigsq1){
 ```
 
 **Maximization Step**
+
 M step otputs new values for the parametres, and estimates the parameters given the indicators:
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
@@ -342,17 +343,15 @@ lines(x,y2,col=3)
 
 ```
 
-Print alpha to show that 50 percent are popular
-
+Print alpha. 40% are hits. This is too high (will change when we fix the variances)
 
 ```{r}
-## 50 percent are popular
+## 40 percent are popular
 alpha
-
 
 ```
 
-Now get the individual probabilities for each artist. We can print the keys that are most probable to be hits for each artist. 
+Get the individual probabilities for each artist. See that the histogram shows likelihood of each song in hit or not hit group. Then identify the keys for each artist with higher than 90 percent chance of being a hit. Animal Collective has 4 keys with higher than a 90% chance of being a hit.
 ```{r}
 
 #Getting Individual probabilities for each player
@@ -364,13 +363,8 @@ artists.topHR<-clean_data[finalindprops > 0.90,1:3]
 artists.topHR
 
 ```
-
-
-Then, for a single artist, print the probability of hit in each of the 14 keys 
+For a single artist, we can pull the probability of a hit in each key.
 ```{r}
-
-
-## probability of being a hit song
 ### Velvet Underground
 id <- clean_data$artist_name
 player_index <- id == "The Velvet Underground"
@@ -386,13 +380,12 @@ By forcing the two components to have the same variance, alpha becomes 0.26, in 
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 
-
-
 #EM algorithm for equal-variance model
 Estep2 <- function(y,alpha,mu0,mu1,sigsq){
   n <- length(y)  
   ind <- rep(NA,n)
   for (i in 1:n){
+    ## notice that sigsq is the same for each component
     prob0 <- (1-alpha)*dnorm(y[i],mean=mu0,sd=sqrt(sigsq))
     prob1 <- alpha*dnorm(y[i],mean=mu1,sd=sqrt(sigsq))
     ind[i] <- prob1/(prob0+prob1)
@@ -467,7 +460,7 @@ alpha
 
 **Sample Predictions**
 
-Consider the example of Modest Mouse. The Keys of A minor, C major, D minor, E major and G major are highly likely to produce hit songs. The posterior probability of popularity for each key are mapped below. Recall that these predictions are based on the average popularity of all songs in a key. Mean popularity doesnot capture the variance within a key and between keys. Bayesian Hiearchical Modeling will do better at taking variance into account.
+Consider the example of Modest Mouse. The Keys of A minor, C major, D minor, E major and G major are highly likely to produce hit songs. The posterior probability of popularity for each key are mapped below. Recall that these predictions are based on the average popularity of all songs in a key. Mean popularity does not capture the variance within a key and between keys. Bayesian Hiearchical Modeling will do better at taking variance into account.
 
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
@@ -523,10 +516,6 @@ p(\theta_i\mid \mu, \sigma^2,y, \tau^2) = N(\frac{\frac{1}{\sigma_i^2}y_i + \fra
 
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
-
-####
-### step 5: Hierarchical Prediction
-###
 
 ### this has to be a sample: sample 5 songs from each
 load("/cloud/project/data/output_bayes (2).Rdata")
