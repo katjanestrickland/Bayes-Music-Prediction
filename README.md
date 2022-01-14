@@ -7,7 +7,7 @@ hierarchical bayes mixture model, predicting hits in experimental music
 
 ## Analysis Overview
 
-A normal-normal mixture model. In expectation step, expected indicator for every observation (whether song is popular or un-popular) is calculated. The maximization step takes these indicator values from the E step and outputs new values for each parameter. The EM algorithm estimates result in an overall max log-likelihood of 360.7, mu0 at 0.17, mu1 at .33, and alpha at 0.52. First model assigns a high probability to a song being a hit. Additionally, the overlap in distributions is troubling. Forcing the two components to have the same variance, alpha becomes 0.26, in tune with hypothesis of hit song making being a rare event.
+A normal-normal mixture model with EM algorithm, then hiearchical bayes. See Markdown Link
 
 ``` {r}
 
