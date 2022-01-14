@@ -86,7 +86,7 @@ merged_new <- merged_new %>%
   mutate(mean_pop = mean_pop/100)
 head(merged_new)
 ```
-We can visualize popularity across keys for this group of artists. Are these differences due to listener demand or due to artist intend? Are Nirvana fans just more sad, and the Eminor key will be more popular than the E minor key is popular for say, Beyonce? Nirvana also wrote more songs in the keys of Csharp and Gsharp than any other key. However, their most popular songs are in more experimental keys, such as Dsharp minor and F minor, and E minor. This begs the question of what we come to expect from a band, and how song writing works for bands. The Velvet Underground only has one song in F minor, but it is their most popular (the song Sunday Morning, off of Velvet Underground and Nico). But The Velvet Underground wrote the most songs in the key of D major, and there is not much variability in this key. Could it be because they are less inclined to take risks in that key? The final section will touch on this concept of hierarchical variance. First, though, let’s use Bayesian prediction to predict hit tracks.
+We can visualize popularity across keys for this group of artists. Are these differences due to listener demand or due to artist intend? Maybe Nirvana fans just more "down". In that case, the Eminor key will be more popular than the E minor key among Beyonce fans? Nirvana also wrote more songs in the keys of C and G major than any other key. However, their most popular songs are in more experimental keys, such as Dsharp minor, F minor, and E minor. This begs the question of what we come to expect from a band, and what turns out to be popular among fans. The Velvet Underground only has one song in F minor, but the song (Sunday Morning, off of Velvet Underground and Nico) is their most popular. The Velvet Underground wrote the most songs in the key of D major, and there is not much variability in this key. Could it be because they are less inclined to take risks in that key? The final section will touch on this concept of hierarchical variance. First, though, let’s use Bayesian prediction to predict hit tracks.
 
 ```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=FALSE}
 ### aggregated data
@@ -155,9 +155,6 @@ load("/cloud/project/data/beyonce.Rdata")
 load("/cloud/project/data/cash.Rdata")
 clean_data <- merged_new
 
-
-
-
 par(mfrow=c(2,2))
 ####
 ### step 2: visualize popularity
@@ -205,8 +202,8 @@ ggarrange(ggarrange(`plot Allman Brothers Band`, `plot Beyoncé`,
 
 ## Bayesian Modeling Approach
 
+I fit a two-component mixture model to the distribution of popularity averages, one that represents songs with average popularity, and another that represent hit tracks. We don't observe the grouping of songs in the data generation process (i.e. Spotify doesn't have a 'hit track' variable); therefore, this can be considered a missing data problem. The EM algorithm will help to identify which of the two components the data came from. A normal-normal mixture model will do well here, as the distribution of popularity appears to be bimodal. 
 
-I fit a two-component mixture model to the distribution of popularity averages, one that represents songs with average popularity, and another that represent hit tracks. As we don't observe the grouping of songs in the data generation process (i.e. Spotify doesn't have a 'hit track' variable), then we consider this a missing data problem (whether or not a song is a hit or not), and turn to the EM algorithm to identify which of the two components the data came from. A normal-normal mixture model will do well here, as the distribution of popularity appears to be bimodal. 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 load("/cloud/project/data/aggregated_data.Rdata")
 clean_data <- aggregated_data
@@ -228,27 +225,23 @@ $$\begin{equation}
 y =  Normal(\mu, \sigma^2)
 \end{equation}$$
 
-The EM algorithm has 5 variance components. The alpha is the probability that any particular data point is from the 1 component, where being from the 0 component is 1-alpha. The five unknown parameters are given by
+We have 5 variance components: the mu (means) of the first two groups, the sigma squares (variances) of the two groups, and the alpha, representing the probability that any particular data point (song) is from the 1 component. A point from the 0 component is represented by 1-alpha. The five unknown parameters are given by
 
 $$\begin{equation}
 \theta = (\mu_1, \mu_0, \sigma_1^2, \sigma_0^2, \alpha)
 \end{equation}$$
 
-Estimating theta is difficult because we don't know which of the two components each observation came from. If we had the missing data, we could seperate these units out into the two components. Since we don't observe the data generation process, however, this is a missing data problem.
+Estimating theta is difficult because we don't know which of the two components each observation came from. If we had the missing data, we could seperate these units out into the two components, but since we don't observe the data generation process, let's consider the missing data as an indicator. Each unit (song) has an indicator, equal to 1 if the observation came from group 1, and equal to 0 if the observation came from group 0. Alpha is the proportion of observations that are in group 1 and 0. In a counter-intuitive concept, adding more "carefully chosen parameters" (i.e. these indicators) to the model helps improve estimation.
 
-Consider the missing data as an indicator. Each unit (song) has an indicator, equal to 1 if the observtion came from group 1, or 0 if it came from group 0, where alpha is the probability, because alpha is the proportion of observations that are in group 1 and 0. As we add more "carefully chosen parameters" (i.e. these indicators) then estimating the model becomes easier. 
-
-The likelihood for the EM can be written as a function of both the observed data and the missing data, where Y is the observed data, I is missing data, given theta, the parameters. Observed and missing data are both conditioned on theta, as opposed to only observed conditioned on theta, which is the observed data likelihood.
+The likelihood for the EM is written as a function of both the observed data and the missing data, where Y is the observed data, I is missing data. Observed and missing data are both conditioned on theta, as opposed to only observed variables conditioned on theta, which is the observed data likelihood.
 
 $$\begin{equation}
 P(Y, I | \theta)
 \end{equation}$$
 
-This likelihood is not actually observable, because we don't have the value of indicators. We can't use the actual values, but we can plug in their expected values. Instead of plugging in i to the actual likelihood, we'll plug in y hat, the expected value of the indicators. The expected value of an indicator is the probability of that observation (song) being 1. 
+Again, this likelihood is not actually observable, because we don't have the value of indicators. Since we can't use the actual values (i), we plug in their expected values (yhat) to the actual likelihood. The expected value of an indicator is the probability of that observation (song) being 1. 
 
-The EM algorithm is suited for situations where we don't know which of the two components (non-hit or hit) the data came from. In the first part, the expectation step, the expected indicator for every single observation (whether the observation is in the popular or un-popular group) is calculated. The following step (M step) takes these indicator values from the E step, and outputs new values for the parameters. In other words, the E step takes in current parameter values and outputs estimated values for the indicators. The M step takes in values for the indicators and outputs values for the parameters.
-
-The algorithm code: This is an iterative algorithm, not just one step. We either have to invent these values, start with some unknown theta, then run the M step using values from the E step. The point of the M step is to give better values for the E step. Every step improves the estimates of the unknown. As a hill climbing algorithm, this is guaranteed to find a local mode, not a global mode. 
+In the first part of EM, the expectation step, the expected indicator for every single observation (whether the observation is in the popular or un-popular group) is calculated. The following step (M step) takes these indicator values from the E step, and outputs new values for the parameters. In other words, the E step takes in current parameter values and outputs estimated values for the indicators. The M step takes in values for the indicators and outputs values for the parameters. The point of the M step is to give better values for the E step, where every step improves the estimates of the unknown. As a hill climbing algorithm, EM is guaranteed to find a local mode, not a global mode. 
 
 **Expectation Step**
 
@@ -282,22 +275,20 @@ Mstep <- function(y,ind){
   sigsq0 <- sum((1-ind)*((y-mu0)^2))/sum(1-ind)
   c(alpha,mu0,mu1,sigsq0,sigsq1)
 }
+```
 
-##observed data loglikelihood function
+Choose an arbitrary starting point (curalpha as 0.5), and run the while loop for 100 iterations.
+```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
+##observed data log likelihood function
 loglik.mix <- function(y,ind,alpha,mu0,mu1,sigsq0,sigsq1){
   loglik <- sum(log(alpha*dnorm(y,mu1,sqrt(sigsq1))+(1-alpha)*dnorm(y,mu0,sqrt(sigsq0))))
   loglik
 }
-
 ```
 
 
-We choose an arbitrary starting point (curalpha as 0.5). As a hill climbing algorithm, the loop will indicate until it gets to the top of the hill. This while loop goes for 100 iterations, and stops until it gets to a certain points.
+Estimates result in the overall maximum log-likelihood (=360.7) with mu0 at 0.17, mu1 at .33., and alpha at 0.52. This model assigns a high probability to a song being a hit. Notice the overlap in distributions.
 
-Bands will likely create less hit songs than they do regular tracks. Running the EM algorithm from these starting points, estimates result in the overall maximum log-likelihood (=360.7) with mu0 at 0.17, mu1 at .33., and alpha at 0.52. This model assigns a high probability to a song being a hit. The overlap in distributions is also troubling. 
-
-
-Figure: A histogram of the popularity averages with curves for both instances of the fitted densities using the MLE of the mixture components is below. I checked for multiple modes by running the EM algorithm starting from many different starting values.
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 
@@ -348,8 +339,21 @@ y2 <- alpha*dnorm(x,mu1,sqrt(sigsq1))
 ## mu 0 is 0.07, and mu1 is .32
 lines(x,y1,col=2)
 lines(x,y2,col=3)
+
+```
+
+Print alpha to show that 50 percent are popular
+
+
+```{r}
 ## 50 percent are popular
 alpha
+
+
+```
+
+Now get the individual probabilities for each artist. We can print the keys that are most probable to be hits for each artist. 
+```{r}
 
 #Getting Individual probabilities for each player
 finalindprops <- Estep(mean_pop,alpha,mu0,mu1,sigsq0, sigsq1)
@@ -358,6 +362,12 @@ hist(finalindprops)
 sum(finalindprops > 0.90)
 artists.topHR<-clean_data[finalindprops > 0.90,1:3]
 artists.topHR
+
+```
+
+
+Then, for a single artist, print the probability of hit in each of the 14 keys 
+```{r}
 
 
 ## probability of being a hit song
@@ -368,20 +378,6 @@ y <- mean_pop
 ind <- curind
 Estep(y[player_index], alpha, mu0, mu1, sigsq0, sigsq1)
 
-### Modest Mouse
-id <- merged_new$artist_name
-player_index <- id == "Modest Mouse"
-y <- mean_pop
-ind <- curind
-Estep(y[player_index], alpha, mu0, mu1, sigsq0, sigsq1)
-
-
-### Nirvana
-id <- merged_new$artist_name
-player_index <- id == "Nirvana"
-y <- mean_pop
-ind <- curind
-Estep(y[player_index], alpha, mu0, mu1, sigsq0, sigsq1)
 ```
 
 **Equal Variance Model**
@@ -525,3 +521,108 @@ $$\begin{equation}
 p(\theta_i\mid \mu, \sigma^2,y, \tau^2) = N(\frac{\frac{1}{\sigma_i^2}y_i + \frac{1}{\tau^2}\mu}{\frac{1}{\sigma^2}+\frac{1}{\tau^2}}, \frac{1}{\frac{1}{\sigma_i^2} + \frac{1}{\tau^2}})
 \end{equation}$$
 
+
+```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
+
+####
+### step 5: Hierarchical Prediction
+###
+
+### this has to be a sample: sample 5 songs from each
+load("/cloud/project/data/output_bayes (2).Rdata")
+merge <- new_data
+merge <- merge %>%
+  select(track_name, artist_name, key_mode, popularity_index)
+merge <- merge %>%
+  arrange(track_name, popularity_index) %>%
+  filter(duplicated(track_name) == FALSE)
+merge <- merge[- grep("-", merge$track_name),]
+merge <- merge %>%
+  arrange(track_name, popularity_index) %>%
+  filter(duplicated(track_name) == FALSE)
+merge <- merge[- grep("live", merge$track_name),]
+merge <- merge[- grep("Live", merge$track_name),]
+# merged <- merge %>%
+#   group_by(artist_name, key_mode) %>%
+#   select(artist_name, key_mode, popularity_index, track_name) %>%
+#   filter(popularity_index >0)
+### choose a sampling procedure for this
+df <-merge %>%
+  filter(artist_name == "Johnny Cash") %>%
+  select(key_mode, popularity_index, artist_name) %>%
+  group_by(key_mode) %>%
+  filter(popularity_index > 0)
+df <- df %>% 
+  group_by_at(vars(-popularity_index)) %>%  # g
+  mutate(row_id=1:n()) %>%
+  ungroup() %>%
+  spread(key_mode, popularity_index)
+## we had to choose keys with at least a 10 song representation in the dataset
+johnnycash <- df %>%
+  select(artist_name, "A major", "A minor", "B major", "B minor",
+         "C major", "C# major", "C minor", "D major", "D# major", "E major",
+         "E minor", "F major", "F# major", "G major", "G# major")
+johnnycash <- johnnycash[1:10,2:16]
+
+### different variances in each
+var(johnnycash$`A minor`)
+var(johnnycash$`B minor`)
+
+###HLM Prediction
+y_johnnycash <- data.frame(lapply(johnnycash, function(x) as.numeric(as.character(x))))
+dat <- stack(as.data.frame(y_johnnycash))
+library(ggplot2)
+plot1<- ggplot(dat) + 
+  geom_boxplot(aes(x = ind, y = values)) +
+  ylab("Popularity") +
+  xlab("")+
+  theme(axis.title.x = element_blank(),
+        axis.ticks.x= element_blank()) +
+  theme_minimal() +
+  ggtitle("Johnny Cash") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))
+
+#### Animal Collective
+
+df2 <-merge %>%
+  filter(artist_name == "Animal Collective") %>%
+  select(key_mode, popularity_index, artist_name) %>%
+  group_by(key_mode)
+df2 <- df2 %>% 
+  group_by_at(vars(-popularity_index)) %>%  # g
+  mutate(row_id=1:n()) %>%
+  ungroup() %>%
+  spread(key_mode, popularity_index)
+animal_collective <- df2 %>%
+  select(artist_name, "A major", "A minor", "B major",
+         "C major", "C# major", "C minor", "D major", "D# major", "E major",
+         "E minor", "F major", "F# major", "G major", "G# major")
+animal_collective <- animal_collective[1:3,2:15]
+y_animal_collective <- data.frame(lapply(animal_collective, function(x) as.numeric(as.character(x))))
+y_animal_collective
+
+### different variances in each
+var(y_animal_collective$C..major)
+
+###HLM Prediction
+y_animal_collective <- data.frame(lapply(y_animal_collective, function(x) as.numeric(as.character(x))))
+dat <- stack(as.data.frame(y_animal_collective))
+library(ggplot2)
+plot2<- ggplot(dat) + 
+  geom_boxplot(aes(x = ind, y = values)) +
+  ylab("Popularity") +
+  xlab("")+
+  theme(axis.title.x = element_blank(),
+        axis.ticks.x= element_blank()) +
+  theme_minimal() +
+  ggtitle("Animal Collective") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))
+
+library(ggpubr)
+library(gridExtra)
+ggarrange(plot1, plot2)
+```
+
+
+
+Next step
