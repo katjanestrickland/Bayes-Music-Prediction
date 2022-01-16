@@ -7,7 +7,7 @@ hierarchical bayes mixture model, predicting hits in experimental music
 
 ## Analysis Overview
 
-A normal-normal mixture model with EM algorithm, then hiearchical bayes. See Markdown Link
+A normal-normal mixture model with EM algorithm, then hierarchical bayes. See Markdown Link
 
 ``` {r}
 
