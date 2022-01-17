@@ -16,9 +16,15 @@ knitr::opts_chunk$set(
 )
 ```
 
+## Overview
+
+Bob Dylan doesn't often grace the pages of the Wall Street Journal, but last year, the iconic folk singer made financial headlines when he sold the entirety of his music catalog for 300 million dollars. Songs, like other forms of art, are a potentially valuable yet hard to appraise investment: valuable because of the potential to build more popularity from modern streaming services, and all the more uncertain because of the inherent ambiguity in predicting how creative leaps will be adored or ignored by music fans.
+
+Data from streaming platforms offers some hope in modelling future cash flows from new releases, and this modelling begins with prediction of new songs' popularity on streaming platforms. In this analysis, I approach the question from a Bayesian perspective. The prediction centers around how a song written in one of the 12 keys will perform in popularity count on Spotify, the largest worldwide streaming platform. Bayesian methods are particularly suited to model uncertainty in this predication, and perform well by incorporating prior information built into the vast dataset of songs. An analysis of this type might appearl to the creative types- what makes music 'experimental?'- yet also satisfy a financial itch- is a new song in a different key going to sell?
+
 ## Intro to the Spotify API - Keys and Popularity Index
 
-Using the Spotify API, I pulled the discogrpahies of 15 bands that cross range of musical style. With over 100 songs per band, the Spotify API gives us data on 40 measured variables, including album name, track name, duration, tempo, and many more.
+Using the Spotify API, I pulled the discographies of 15 bands that cross range of musical style. Data includes 40 measured variables per track, such as album name, track name, duration, and tempo.
 
 
 ```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
@@ -31,9 +37,15 @@ table(merge$artist_name)
 
 ```
 
+"*Every art fights the noose of verbal description*", writes Alex Ross, the New Yorker music critic, in his expansive music history,"The Rest is Noise". Ross has done better than anyone at attempting to describe the art form of music, yet still admits the difficulty of evaluating this deep and difficult art. However challenging it might be to pin down musical creativity, he still admits that song structure is founded on certain building blocks, and that understanding these basics can help us to try and wrangle in the elusive concept that is creativity.
+
+One of these building blocks are the keys. A key is the pattern of intervals between notes, from half tone to semi tone (think of the jump from a black to a white key on a keyboard).  Keys are named with letter names, names that denote the tonic, or the center, of that key. The key of A for instance, is centered around the A tonic, and the key of F is centered around the F tonic.
+
+Although the advent of equal temperament tuning has largely put key differences to rest, there still might be something to our expectation in keys. Although we can now transpose any song into any key, especially to match the singer's intended tone or the intended song timbre, artists still write across the spectrum. A diversity of song keys is likely to make a more appealing album, as songs in different keys span the mood spectrum and demonstrate more creativity, or stick out from the crowd. The reason why like our favorite bands is precisely because they take risks with different keys. To the non-thinking ear, we are drawn to the spectrum of audible emotion. 
+
 Looking at the count of raw data, the distribution of keys looks similar to what others have determined to be the most frequented keys on Spotify. The data sample's distribution reflects the distribution of all keys on Spotify: keys of G major, D major and C major (more simple keys with less sharps and flats) are represented the most. 
 
-Key distribution doesn't hold across artists. The band Radiohead wrote more songs in the key of A sharp than Animal Collective, who wrote more in D. This begs the question of how hits are formed among artists. Does a band get better by writing na lot in one key? Could other bands be more likely to land a hit when they write outside of their frequented key?
+The distribution of keys doesn't hold necessarily across artists, however. The experimental band Radiohead wrote more songs in the key of Asharp than Animal Collective, for instance, who write more songs in the Key of D. This begs the question of how hits are formed among artist. Does a band get better by writing a lot in one key? Could other bands be more likely to land on a hit when they write outside of their most frequented key? The distribution of popularity and keys also don't hold across artists. In addition to inspecting how frequently bands write in a certain key, we can also investigate how popular songs in a certain key are for each band.
 
 ```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 par(mfrow=c(1,1))
@@ -59,9 +71,7 @@ ggplot(clean_data_count, aes(x = key_mode,
 
 ```
 
-Spotify's popularity index is a number from 0-100 that represents the total number of plays a track has. The popularity of songs in each key within each band will vary based on the variability of that band's key usage.
-
-To determine this,, we only need the artist name, track name, key and popularity index. Let's also remove Live tracks, as the popularity of a live version might conflate the original studio recorded version. A summary statistic (the mean popularity) for each artists' key is computed, from these tracks, and converted to a decimal (probability).
+Spotify's popularity index will give us more information than sheer key count. The popularity index is a number from 0-100 that represents the total number of plays a track has. To investigate how popularity varies with key usage, we only need the artist name, track name, key and popularity index. Let's also remove Live tracks, as the popularity of a live version might conflate the original studio recorded version. A summary statistic (the mean popularity) for each artists' key is computed, from these tracks, and converted to a decimal (probability).
 
 ```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 merge <- merge %>%
@@ -86,7 +96,7 @@ merged_new <- merged_new %>%
   mutate(mean_pop = mean_pop/100)
 head(merged_new)
 ```
-We can visualize popularity across keys for this group of artists. Are these differences due to listener demand or due to artist intend? Maybe Nirvana fans just more "down". In that case, the Eminor key will be more popular than the E minor key among Beyonce fans? Nirvana also wrote more songs in the keys of C and G major than any other key. However, their most popular songs are in more experimental keys, such as Dsharp minor, F minor, and E minor. This begs the question of what we come to expect from a band, and what turns out to be popular among fans. The Velvet Underground only has one song in F minor, but the song (Sunday Morning, off of Velvet Underground and Nico) is their most popular. The Velvet Underground wrote the most songs in the key of D major, and there is not much variability in this key. Could it be because they are less inclined to take risks in that key? The final section will touch on this concept of hierarchical variance. First, though, let’s use Bayesian prediction to predict hit tracks.
+Next, we can visualize popularity across keys for this group of artists. Does listener demand or artist intend drive the interaction between key popularity and usage? Maybe Nirvana fans just more "down". In that case, the Eminor key would be more popular than the Eminor key among Beyonce fans? Nirvana also wrote more songs in the keys of C and Gmajor than any other key. However, their most popular songs are in more experimental keys, such as D#minor, Fminor, and E minor. This begs the question of what we come to expect from a band, and what turns out to be popular among fans. The Velvet Underground only has one song in Fminor, but the song (Sunday Morning, off of Velvet Underground and Nico) is their most popular. The Velvet Underground wrote the most songs in the key of Dmajor, and there is not much variability in this key. Could it be because they are less inclined to take risks in that key? The final section will touch on this concept of hierarchical variance. First, though, let’s use Bayesian prediction to predict hit tracks.
 
 ```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=FALSE}
 ### aggregated data
@@ -202,7 +212,7 @@ ggarrange(ggarrange(`plot Allman Brothers Band`, `plot Beyoncé`,
 
 ## Bayesian Modeling Approach
 
-I fit a two-component mixture model to the distribution of popularity averages, one that represents songs with average popularity, and another that represent hit tracks. We don't observe the grouping of songs in the data generation process (i.e. Spotify doesn't have a 'hit track' variable); therefore, this can be considered a missing data problem. The EM algorithm will help to identify which of the two components the data came from. A normal-normal mixture model will do well here, as the distribution of popularity appears to be bimodal. 
+I fit a two-component mixture model to the distribution of popularity averages, one that represents songs with average popularity, and another that represent hit tracks. We don't observe the grouping of songs in the data generation process (i.e. Spotify doesn't have a 'hit track' variable); therefore, this is considered a "missing data" problem. The Expectation-Maximization (EM) algorithm will help to identify which of the two components the data came from. Furthermore, since the distrubtion of popularity appears to be normal, then we choose a normal-normal mixture model.
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 load("/cloud/project/data/aggregated_data.Rdata")
@@ -211,8 +221,8 @@ clean_data <- aggregated_data
 clean_data$mean_pop <- as.numeric(clean_data$mean_pop)
 mean_pop <- clean_data$mean_pop
 hist(mean_pop)
-artist <-  clean_data$artist_name
-key_mode <- clean_data$key_mode
+# artist <-  clean_data$artist_name
+# key_mode <- clean_data$key_mode
 ```
 
 
@@ -225,13 +235,13 @@ $$\begin{equation}
 y =  Normal(\mu, \sigma^2)
 \end{equation}$$
 
-We have 5 variance components: the mu (means) of the first two groups, the sigma squares (variances) of the two groups, and the alpha, representing the probability that any particular data point (song) is from the 1 component. A point from the 0 component is represented by 1-alpha. The five unknown parameters are given by
+The model consists of 5 variance components: the mu (means) of the first two groups, the sigma squares (variances) of the two groups, and the alpha, representing the probability that any particular data point (song) is from the 1 component. A point from the 0 component is represented by 1-alpha. The five unknown parameters are given by
 
 $$\begin{equation}
 \theta = (\mu_1, \mu_0, \sigma_1^2, \sigma_0^2, \alpha)
 \end{equation}$$
 
-Estimating theta is difficult because we don't know which of the two components each observation came from. If we had the missing data, we could seperate these units out into the two components, but since we don't observe the data generation process, let's consider the missing data as an indicator. Each unit (song) has an indicator, equal to 1 if the observation came from group 1, and equal to 0 if the observation came from group 0. Alpha is the proportion of observations that are in group 1 and 0. In a counter-intuitive concept, adding more "carefully chosen parameters" (i.e. these indicators) to the model helps improve estimation.
+Estimating theta is difficult because we don't know which of the two components each observation came from. If we had the missing data, we could seperate these units into their respective components, but instead, we'll consider the missing data as an indicator. Each unit (song) has an indicator, equal to 1 if the observation (that song) came from group 1, and equal to 0 if the observation came from group 0. Alpha is the proportion of observations that are in group 1 and 0. In a counter-intuitive concept to much of statistical modeling, adding more "carefully chosen parameters" (i.e. these indicators) improves model estimation.
 
 The likelihood for the EM is written as a function of both the observed data and the missing data, where Y is the observed data, I is missing data. Observed and missing data are both conditioned on theta, as opposed to only observed variables conditioned on theta, which is the observed data likelihood.
 
@@ -239,9 +249,9 @@ $$\begin{equation}
 P(Y, I | \theta)
 \end{equation}$$
 
-Again, this likelihood is not actually observable, because we don't have the value of indicators. Since we can't use the actual values (i), we plug in their expected values (yhat) to the actual likelihood. The expected value of an indicator is the probability of that observation (song) being 1. 
+We can't use the actual values (i) as the indicators are unobservable. Instead, we'll plug in their expected values (yhat) to the actual likelihood. The expected value of an indicator becomes the probability of that observation (song) being in group 1. 
 
-In the first part of EM, the expectation step, the expected indicator for every single observation (whether the observation is in the popular or un-popular group) is calculated. The following step (M step) takes these indicator values from the E step, and outputs new values for the parameters. In other words, the E step takes in current parameter values and outputs estimated values for the indicators. The M step takes in values for the indicators and outputs values for the parameters. The point of the M step is to give better values for the E step, where every step improves the estimates of the unknown. As a hill climbing algorithm, EM is guaranteed to find a local mode, not a global mode. 
+EM follows with two steps. To begin, with the E step, the expected indicator for every single observation (whether the observation is in the popular or un-popular group) is calculated. Next, in the M step, we take these indicator values from the E step and outputs new values for each parameters. The E step takes in current parameter values and outputs estimated values for the indicators. The M step takes in values for the indicators and outputs values for the parameters. The point of the M step is to give better values for the E step, where every step improves the estimates of the unknown. As a hill climbing algorithm, EM improves the estimates until it finds a local mode.
 
 **Expectation Step**
 
