@@ -651,12 +651,10 @@ When calculating the posterior distributions for each key, we also note extremes
 
 In our situation, sigma squared is known, and we will estimate the posterior by getting samples from the posterior, where the sufficient stats are just the group means. The code takes 1000 samples from the joint posterior. For each of these samples, we first sample Tau squared from the grid, and that Tau squared, loop through a sample of each of the group specific means. Small values of Tau squared, indicate pulling of the group specific mean towards a global mean (shared information between keys).
 
-## Hieararchical Example
 
 ```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 y <- y_animal_collective
 par(mfrow=c(1,1))
-boxplot(y) 
 ##Calculating necessary statistics:
 m <- length(y[1,])
 n <- rep(NA,m)
@@ -728,8 +726,7 @@ for (i in 1:numsamp){
 
 ## Examining Model Parameters
 
-Mean for Group 1 looks slightly higher than Group 2.
-```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+```{r echo=TRUE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 par(mfrow=c(2,2))
 hist(tausq.samp,main="tausq")
 hist(mu0.samp,main="mu0")
@@ -738,7 +735,7 @@ hist(mu.samp[,2],main="mu group 2")
 ```
 A posterior comparison between keys. Posterior probability that group 5 is greater than group 6, that group 2 greater than group 1:
 
-```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+```{r echo=TRUE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 par(mfrow=c(2,2))
 # posterior probability group 5 has greater mean than group 6
 postprob <- sum(mu.samp[,5] > mu.samp[,6])/numsamp
@@ -752,10 +749,8 @@ postprob
 Using this common prior distribution, and sharing between groups, the estimates of the within group parameters are shrunk towards the global mean. The black dots are the data means, and estimates (red dots) are pulled in. For group 5, the key looks popular, but the red means not as popular as we might think. Keys that are closer to the global mean don't move as much. Extremes are pulled more.
 
 
-```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
-#####################################################
-######### Examining Shrinkage Graphically ###########
-#####################################################
+```{r echo=TRUE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+## shrinkage
 
 datameans <- apply(y,2,mean)
 postmeans <- apply(mu.samp,2,mean)
@@ -772,11 +767,7 @@ legend(8,2,c("Data Mean","Post Mean","Mu0"),pch=19,col=c(1,2,4))
 Sample new data point's value, from the model, which is normal for the data distribution, centered with sigma squared, using the sample of j that we already saw. This is like adding a song to an existing key. This is the distribution of their posterior popularity.
 
 
-```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
-#####################################################
-######### Posterior Predictive Sampling #############
-#####################################################
-
+```{r echo=TRUE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 ## sampling distribution of new observation 
 ## from a currently existing group
 
@@ -796,7 +787,7 @@ hist(ystar.group2,main="Group 2 New Obs",xlim=c(xmin,xmax))
 ```
 
 Alternatively, hierarchical allows us to create a new key. Using shared information across keys, and artists, we compare a new song from the prior distribution across all keys. 
-```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+```{r echo=TRUE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 ## sampling distribution of new observation
 ## from an entirely new group
 
@@ -1141,7 +1132,7 @@ kbl(data_collection2) %>%
 ## Posterior Intervals
 
 
-```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+```{r eval=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=FALSE}
 
 ############
 ### Step 7: Checking the most popular song
@@ -1201,4 +1192,4 @@ kbl(animal_E, col.names = NULL) %>%
 
 ```
 
-
+## Citations
