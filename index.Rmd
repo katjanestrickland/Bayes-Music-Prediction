@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 
 Bob Dylan doesn't often grace the pages of the Wall Street Journal, but last year, the iconic folk singer made financial headlines when he sold the entirety of his music catalog for 300 million dollars. Songs, like other forms of art, are a potentially valuable yet hard to appraise investment: valuable because of the potential to build more popularity from modern streaming services, and all the more uncertain because of the inherent ambiguity in predicting how creative leaps will be adored or ignored by music fans.
 
-Data from streaming platforms offers some hope in modelling future cash flows from new releases, and this modelling begins with prediction of new songs' popularity on streaming platforms. In this analysis, I approach the question from a Bayesian perspective. The prediction centers around how a song written in one of the 12 keys will perform in popularity count on Spotify, the largest worldwide streaming platform. Bayesian methods are particularly suited to model uncertainty in this predication, and perform well by incorporating prior information built into the vast dataset of songs. An analysis of this type might appearl to the creative types- what makes music 'experimental?'- yet also satisfy a financial itch- is a new song in a different key going to sell?
+Data from streaming platforms offers some hope in modelling future cash flows from new releases, and this modelling begins with prediction of new songs' popularity on streaming platforms. In this analysis, I approach the question from a Bayesian perspective. The prediction centers around how a song written in one of the 12 keys will perform in popularity count on Spotify, the largest worldwide streaming platform. Bayesian methods are particularly suited to model uncertainty, and perform well by incorporating prior information built into our vast dataset of songs. They perform even better when we model this information hierarchically. An analysis of this type might appeal to the creative types- what makes music 'experimental?'- yet also satisfy a financial itch- is a new song in a new key going to sell?
 
 ## Intro to the Spotify API - Keys and Popularity Index
 
@@ -298,8 +298,11 @@ loglik.mix <- function(y,ind,alpha,mu0,mu1,sigsq0,sigsq1){
 ```
 
 
-Estimates result in the overall maximum log-likelihood (=360.7) with mu0 at 0.17, mu1 at .33., and alpha at 0.52. This model assigns a high probability to a song being a hit. Notice the overlap in distributions.
+In this code sample, I comment out the iteration values, which would otherwise show the iteration plus observed data likelihood at each step. The likelihood improves until it reaches the top of the hill. 
 
+Plots for the course of the parameters is mapped below. Most of the gains in the observed data likelihood appear in the first few iterations, and after that, parameter estiamtes flatten out until the model converges. Estimates result in an overall maximum log-likelihood (=296.61) with mu0 at 0.18, mu1 at .40., and alpha at 0.40. The optimal kind of mixture components for this distribution is further mapped on to the MLE Densities histogram, where the green distribution represents hit tracks, and the red distribution, non-hit tracks.
+
+This model assigns a high probability to a song being a hit (at .40). Notice the overlap in distributions, as well. Songs that never reach popularity over 0.2 still have a probability of being in the hit track group. The flexibility built into the model (from assigning unique variances per group) causes this overlap. The green group (hit songs) doesn't just have a higher mean, it also has a greater variance. Next, we constrain the variances to address the overlap.
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 
@@ -353,7 +356,7 @@ lines(x,y2,col=3)
 
 ```
 
-Print alpha. 40% are hits. This is too high (will change when we fix the variances)
+Hit rate of 40% is too high. Fixing the variances equal for both groups will constrain this variability.
 
 ```{r}
 ## 40 percent are popular
@@ -361,19 +364,27 @@ alpha
 
 ```
 
-Get the individual probabilities for each artist. See that the histogram shows likelihood of each song in hit or not hit group. Then identify the keys for each artist with higher than 90 percent chance of being a hit. Animal Collective has 4 keys with higher than a 90% chance of being a hit.
+Individual probabilities for each artist's key are estimated from the parameters saved in the Estep. The histogram shows likelihood of all songs in the hit or not hit group. Keys are either likely to be in group 1, or not. 
 ```{r}
 
 #Getting Individual probabilities for each player
 finalindprops <- Estep(mean_pop,alpha,mu0,mu1,sigsq0, sigsq1)
 
 hist(finalindprops)
+
+```
+
+
+
+We can also identify the keys for each artist with higher than 90 percent chance of being a hit. Animal Collective has 4 keys with higher than a 90% chance of being a hit. Although these songs are lower average popularity than other artists, they are, for animal collective, the highest likely songs to be hits.
+
+```{r}
 sum(finalindprops > 0.90)
 artists.topHR<-clean_data[finalindprops > 0.90,1:3]
 artists.topHR
 
 ```
-For a single artist, we can pull the probability of a hit in each key.
+For a single artist, we can also pull the probability of a hit in each of the 14 keys. Fminor, below, is the key with 100% chance of being a hit. The probability is blown up because, as discussed above, Velvet Underground's only Fminor song is Sunday Morning. 
 ```{r}
 ### Velvet Underground
 id <- clean_data$artist_name
@@ -386,7 +397,7 @@ Estep(y[player_index], alpha, mu0, mu1, sigsq0, sigsq1)
 
 **Equal Variance Model**
 
-By forcing the two components to have the same variance, alpha becomes 0.26, in tune with our hypothesis of hit song making being a rare event.
+Forcing the two components to have the same variance gives a slighly different solution. Alpha becomes 0.26, in tune with our hypothesis of hit song making being a rare event. The vast majority of songs are not hits. When we pull out the artist keys that have greater than .90 probability of a hit, these are more reliable estimates.
 
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
@@ -470,7 +481,9 @@ alpha
 
 **Sample Predictions**
 
-Consider the example of Modest Mouse. The Keys of A minor, C major, D minor, E major and G major are highly likely to produce hit songs. The posterior probability of popularity for each key are mapped below. Recall that these predictions are based on the average popularity of all songs in a key. Mean popularity does not capture the variance within a key and between keys. Bayesian Hiearchical Modeling will do better at taking variance into account.
+Consider the example of Modest Mouse. The Keys of C# major, E major and G# major are highly likely (over .90 posterior probability) to produce hit songs. The posterior probability of popularity for each key are mapped below. In a valuation sense, these posterior predictions and related predictive intervals are more credible to uncertainty compared to a regular confidence interval.
+
+Recall, however, that these posterior predictions are based on the average popularity of all songs in a key. Mean popularity does not capture the variance within a key and between keys. Bayesian Hiearchical Modeling will do better at taking variance into account.
 
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
@@ -548,9 +561,9 @@ johnnycash <- df %>%
          "E minor", "F major", "F# major", "G major", "G# major")
 johnnycash <- johnnycash[1:10,2:16]
 
-### different variances in each
-var(johnnycash$`A minor`)
-var(johnnycash$`B minor`)
+# ### different variances in each
+# var(johnnycash$`A minor`)
+# var(johnnycash$`B minor`)
 
 ###HLM Prediction
 y_johnnycash <- data.frame(lapply(johnnycash, function(x) as.numeric(as.character(x))))
@@ -583,10 +596,10 @@ animal_collective <- df2 %>%
          "E minor", "F major", "F# major", "G major", "G# major")
 animal_collective <- animal_collective[1:3,2:15]
 y_animal_collective <- data.frame(lapply(animal_collective, function(x) as.numeric(as.character(x))))
-y_animal_collective
+# y_animal_collective
 
-### different variances in each
-var(y_animal_collective$C..major)
+# ### different variances in each
+# var(y_animal_collective$C..major)
 
 ###HLM Prediction
 y_animal_collective <- data.frame(lapply(y_animal_collective, function(x) as.numeric(as.character(x))))
