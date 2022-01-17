@@ -1,5 +1,5 @@
 ---
-title: "Hit Prediction"
+title: "Hierarchical Bayes Prediction"
 author: "Kat Wilson"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -521,7 +521,7 @@ kbl(EM_dataframe_modest[9:16,]) %>%
 
 ## Hierarchical Bayes
 
-Notice substantial variation between each key for each artist. Our first Bayesian model assumed that the mean is the same in each key, but hiearchical bayes will allow us to have a different data situation for each key. 
+Notice substantial variation between each key within each artist. Our first Bayesian model assumed that the mean is the same in each key, but hiearchical bayes will allow us to have a different data situation for each key. Staying in the normal family, we think about what parameters are shared or not shared between and within groups. 
 
 ```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 
@@ -623,9 +623,9 @@ ggarrange(plot1, plot2)
 
 
 
-One observation for song i in group (key) j is represented by Yij, where yijs are normally distrubted within each group. N(mu, sigma), allows a different mean for every single group. Muj is the key effect, where the variance in the key is attributable to that key (certain keys are more popular than others).
+One observation for song i in group (key) j is represented by Yij, where yijs are normally distribetd within each group. N(mu, sigma), allows a different mean for every single group. Muj is the "key effect", where the variance in the key is attributable to that key (certain keys are more popular than others).
 
-If we analyzed each key separately, that would assume that each key has nothing to do with one another. This model, however, allows us the parameterize the actual variation between each key which is shared information between the keys (due to artist affect). The sahred information is reflected in the common prior on each key within each artist. Assuming a common prior for the group specific means, each of the key effects are normally distributed around some global overal mean for the artist. Tau squared represents variation across keys, and sigma squared represents the variance of songs within that key. We model two levels of uncertainty in the group data structure.
+If we analyzed each key separately, that would assume that each key has nothing to do with one another. This model, however, allows us the parameterize the actual variation between each key which is shared information between the keys (due to artist affect). The shared information is reflected in the common prior on each key within each artist. Assuming a common prior for the group specific means, where each of the key effects are normally distributed around some global overall mean for the artist. Tau squared represents variation across keys, and sigma squared represents the variance of songs within that key. We are, through this approach, modeling two levels of uncertainty in the group data structure.
 
 Assume a known $\sigma^2$ and model the parameters yij as the observations i in group j and mu as the global mean:
 
@@ -643,10 +643,185 @@ $$\begin{equation}
 p(\theta_i\mid \mu, \sigma^2,y, \tau^2) = N(\frac{\frac{1}{\sigma_i^2}y_i + \frac{1}{\tau^2}\mu}{\frac{1}{\sigma^2}+\frac{1}{\tau^2}}, \frac{1}{\frac{1}{\sigma_i^2} + \frac{1}{\tau^2}})
 \end{equation}$$
 
+Notice two overall effects: Tau squared is the between key variation, and Mu naught is the overall artist popularity mean. Conditioned on knowing the values of the group means, j, the data are conditionally independent from those global parameters. So, all of the information on the global level is encapsulated on the other j's. Hiearchical models take advantage of such conditioning. 
+
+The usual prior that we would use (a noninformative Jeffrey's prior) might actually look influential in this case. With two levels of unknown parameters, and only a certain amount of data to estimate, then the priors that used to be weak, or uninformative, end up now being influential. The observed data is not as strong as it used to be, and furthermore, the data signal is fairly weak on the global parameters.
+
+When calculating the posterior distributions for each key, we also note extremes of Tau squared. As Tau squared goes to infinity, then there is infinite variation between keys. In that case, we might as well model all of the keys seperately, getting the key specific effect for each. In that case, we'd center Muj at the data, analyzing every key seperately. On the other end of the extreme, Tau squared goes to 0, and this means that there is almost no variation between keys, so every key has the same effect. In reality, Tau squared will be somewhere not right at 0, or close to infinity It is a compromize between the group specific and the global mean.
+
+In our situation, sigma squared is known, and we will estimate the posterior by getting samples from the posterior, where the sufficient stats are just the group means. The code takes 1000 samples from the joint posterior. For each of these samples, we first sample Tau squared from the grid, and that Tau squared, loop through a sample of each of the group specific means. Small values of Tau squared, indicate pulling of the group specific mean towards a global mean (shared information between keys).
+
+## Hieararchical Example
+
+```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+y <- y_animal_collective
+par(mfrow=c(1,1))
+boxplot(y) 
+##Calculating necessary statistics:
+m <- length(y[1,])
+n <- rep(NA,m)
+means <- rep(NA,m)
+for (i in 1:m){
+  n[i] <- length(y[,i])
+  means[i] <- mean(y[,i])
+}
+ntot <- sum(n)
+
+## true sigmasq
+truesigsq <- 50
+
+#####################################################
+# Sampling Parameters for Normal Hierarchical Model #
+#####################################################
+
+## finding right grid for tausq
+tausq.grid <- ppoints(1000)*20
+
+tausq.logpostfunc <- function(tausq){
+	Vmu0 <- 1/sum(1/(tausq + truesigsq/n))
+	mu0hat <- sum(means/(tausq + truesigsq/n))*Vmu0
+    out <- -0.5*log(tausq)+0.5*log(Vmu0)
+    for (group in 1:m){
+    	out <- out - 0.5*log(tausq + truesigsq/n[group])
+    }
+    for (group in 1:m){
+    	out <- out - 0.5*((means[group]-mu0hat)^2)/(tausq + truesigsq/n[group])
+    }
+    out
+}
+tausq.logpost <- rep(NA,1000)
+for (i in 1:1000){
+	tausq.logpost[i] <- tausq.logpostfunc(tausq.grid[i])
+}
+tausq.post <- exp(tausq.logpost-max(tausq.logpost))
+tausq.post <- tausq.post/sum(tausq.post)
+
+par(mfrow=c(1,1))
+# plot(tausq.grid,tausq.post,type="l")
 
 
-## Add: Shrinkage Plots
+numsamp <- 1000
+tausq.samp <- rep(NA,numsamp)
+mu0.samp <- rep(NA,numsamp)
+mu.samp <- matrix(NA,nrow=numsamp,ncol=m)
+for (i in 1:numsamp){
+    # sampling tausq from grid of values
+   	curtausq <- sample(tausq.grid,size=1,prob=tausq.post)
+    # sampling mu0 given curtausq	
+    Vmu0 <- 1/sum(1/(curtausq + truesigsq/n))
+	mu0hat <- sum(means/(curtausq + truesigsq/n))*Vmu0
+   	curmu0 <- rnorm(1,mean=mu0hat,sd=sqrt(Vmu0))
+   	# sampling group means given curtausq and curmu0
+   	curmu <- rep(NA,m)
+   	for (j in 1:m){
+   		curvar <- 1/(n[j]/truesigsq + 1/curtausq)
+   		curmean <- (means[j]*n[j]/truesigsq + curmu0/curtausq)*curvar
+   		curmu[j] <- rnorm(1,mean=curmean,sd=sqrt(curvar))
+   	}
+   	tausq.samp[i] <- curtausq
+    mu0.samp[i] <- curmu0
+    mu.samp[i,] <- curmu
+    # print (i)
+}
+```
 
+
+## Examining Model Parameters
+
+Mean for Group 1 looks slightly higher than Group 2.
+```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+par(mfrow=c(2,2))
+hist(tausq.samp,main="tausq")
+hist(mu0.samp,main="mu0")
+hist(mu.samp[,1],main="mu group 1")
+hist(mu.samp[,2],main="mu group 2")
+```
+A posterior comparison between keys. Posterior probability that group 5 is greater than group 6, that group 2 greater than group 1:
+
+```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+par(mfrow=c(2,2))
+# posterior probability group 5 has greater mean than group 6
+postprob <- sum(mu.samp[,5] > mu.samp[,6])/numsamp
+postprob
+
+# posterior probability group 2 has greater mean than group 1
+postprob <- sum(mu.samp[,2] > mu.samp[,1])/numsamp
+postprob
+```
+
+Using this common prior distribution, and sharing between groups, the estimates of the within group parameters are shrunk towards the global mean. The black dots are the data means, and estimates (red dots) are pulled in. For group 5, the key looks popular, but the red means not as popular as we might think. Keys that are closer to the global mean don't move as much. Extremes are pulled more.
+
+
+```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+#####################################################
+######### Examining Shrinkage Graphically ###########
+#####################################################
+
+datameans <- apply(y,2,mean)
+postmeans <- apply(mu.samp,2,mean)
+mu0.mean <- mean(mu0.samp)
+
+par(mfrow=c(1,1))
+plot(1:14,datameans,main="Shrinkage of Normal Means",pch=19)
+abline(h=mu0.mean,col=4,lwd=2)
+points(1:14,postmeans,pch=19,col=2)
+legend(8,2,c("Data Mean","Post Mean","Mu0"),pch=19,col=c(1,2,4))
+
+```
+
+Sample new data point's value, from the model, which is normal for the data distribution, centered with sigma squared, using the sample of j that we already saw. This is like adding a song to an existing key. This is the distribution of their posterior popularity.
+
+
+```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+#####################################################
+######### Posterior Predictive Sampling #############
+#####################################################
+
+## sampling distribution of new observation 
+## from a currently existing group
+
+ystar.group1 <- rep(NA,numsamp)
+ystar.group2 <- rep(NA,numsamp)
+for (i in 1:numsamp){
+	ystar.group1[i] <- rnorm(1,mean=mu.samp[i,1],sd=sqrt(truesigsq))
+	ystar.group2[i] <- rnorm(1,mean=mu.samp[i,2],sd=sqrt(truesigsq))
+}
+
+par(mfrow=c(2,1))
+xmin <- min(c(ystar.group1,ystar.group2))
+xmax <- max(c(ystar.group1,ystar.group2))
+hist(ystar.group1,main="Group 1 New Obs",xlim=c(xmin,xmax))
+hist(ystar.group2,main="Group 2 New Obs",xlim=c(xmin,xmax))
+
+```
+
+Alternatively, hierarchical allows us to create a new key. Using shared information across keys, and artists, we compare a new song from the prior distribution across all keys. 
+```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+## sampling distribution of new observation
+## from an entirely new group
+
+ystar.newgroup <- rep(NA,numsamp)
+for (i in 1:numsamp){
+	mu.newgroup <- rnorm(1,mean=mu0.samp[i],sd=sqrt(tausq.samp[i]))
+	ystar.newgroup[i] <- rnorm(1,mean=mu.newgroup,sd=sqrt(truesigsq))
+}
+
+par(mfrow=c(3,1))
+xmin <- min(c(ystar.group1,ystar.group2,ystar.newgroup))
+xmax <- max(c(ystar.group1,ystar.group2,ystar.newgroup))
+hist(ystar.group1,main="Group 1 New Obs",xlim=c(xmin,xmax))
+hist(ystar.group2,main="Group 2 New Obs",xlim=c(xmin,xmax))
+hist(ystar.newgroup,main="New Group New Obs",xlim=c(xmin,xmax))
+
+
+
+```
+
+## GIBBS Hierarchical
+
+Beyond three parameters, we need something better than the grid method. MCMC harnesses the ability of optimization algorithms, such as EM, to move around the posterior space and find optimal grid values. The MCMC optimization algorithm specifically builds on each previous iteration. Using MCMC, we establish a path through the posterior instead of randomly sampling through any one of the posteriors at a time. Given our entire path, the current sample is based on the previous sample, and the distribution is based on the immediate previous sample. 
+
+The workhorse of the Monte Carlo is the Gibbs Sampler, which samples from the joint posterior distribution by iteratively sampling from each distribution of each parameter, given each other parameter. Here, we start with some arbitrary values, and from those values, sample from the conditional distribution given the other values of each parameter. Given that current sample, we sample the next iteration, and cycle through all the parameters until we sample theta from the last parameter. 
 
 ```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 
@@ -656,7 +831,7 @@ p(\theta_i\mid \mu, \sigma^2,y, \tau^2) = N(\frac{\frac{1}{\sigma_i^2}y_i + \fra
 
 y <- y_animal_collective
 par(mfrow=c(1,1))
-boxplot(y) 
+
 
 ##Calculating necessary statistics:
 m <- length(y[1,])
@@ -706,7 +881,14 @@ for (i in 1:numsamp){
   # print(i)
 }
 
-sumsq.y
+```
+
+Markov Chain builds dependence on the previous sample: both a blessing and a curse. While we are moving based on the last move (as in a random walk), we can climb the hill of the posterior distrinution from any starting point. However, we must address the dependence on prior values, first by manually evaluating convergence byvisualizing where the chains come together, and second by reducing the autocorrelation of the paraemter values in each chain. 
+
+In the sample below, we run the GIBBS to sample theta from the i'th iteration, for 10,000 iterations. We establish convergence , seeing whether the black and red lines "come together". Takes about 200 iterations. Define the pre-defined parts as burn in. In other words, throw out a whole 100 values of the chain. The first 100 values are "throw out" as the burn in. For each parameter, we throw out the first 100, and then consider these to be confident samples from the posterior. 
+
+```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
+
 ### run another chain starting at mu0=20 and tausq=sigsq=10
 sigsq.samp2 <- rep(NA,numsamp)
 tausq.samp2 <- rep(NA,numsamp)
@@ -743,6 +925,13 @@ for (i in 1:numsamp){
   sigsq.samp2[i] <- sigsq
   # print(i)
 }
+
+
+```
+
+
+
+```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 
 ### checking convergence 
 par(mfrow=c(2,2))
