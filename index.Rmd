@@ -37,13 +37,13 @@ table(merge$artist_name)
 
 ```
 
-"Every art fights the noose of verbal description", writes Alex Ross, the New Yorker music critic, in his expansive music history, The Rest is Noise, where, despite spending a career in describing the creative process, is quick to acknowledge the futility of evaluating this deep and difficult art. Challenging though it might be to pin down musical creativity, he still admits that song structure is founded upon certain building blocks.
+"Every art fights the noose of verbal description", writes Alex Ross, the New Yorker music critic, in his expansive music history, The Rest is Noise, where, despite spending a career in describing the creative process, he is quick to acknowledge the difficulty of effectively evaluating this deep and difficult art. Challenging might it be to pin down musical creativity, Ross still admits that songs, at their core, can be broken down into certain foundational building blocks.
 
-One of these building blocks are the keys. A key is the pattern of intervals between notes, from half tone to semi tone (think of the jump from a black to a white key on a keyboard).  Keys are named with letter names, names that denote the tonic, or the center, of that key. The key of A for instance, is centered around the A tonic, and the key of F is centered around the F tonic. The human ear is accustomed to natural intonations in notes, and the intervals between the notes and the pattern of flats and sharps influence how a key is structured. The key of C, for instance, contains no flats or sharps. The key of C is often considered one of the more basic, or normal, keys for this reason. Keys have also traditionally been associated with emotions, especially in classical music. However, the advent of equal temperament tuning has largely put the debate about key differences to rest. Musicians can transpose any song into any key, which they might do in order to match the singer's intended tone or create a certain timbre in the overall sound.
+Keys are one of these foundational concepts. A key is the pattern of intervals between notes, from half tone to semi tone (think of the jump from a black to a white key on a keyboard).  Keys are named with letter names, names that denote the tonic, or the center, of that key. The key of A for instance, is centered around the A tonic, and the key of F is centered around the F tonic. The human ear is accustomed to natural intonations in notes, and the intervals between the notes and the pattern of flats and sharps influence how a key is structured. The key of C, for instance, contains no flats or sharps. The key of C is often considered one of the more basic, or normal, keys for this reason. Keys have also traditionally been associated with emotions, especially in classical music. However, the advent of equal temperament tuning has largely put the debate about key differences to rest. Musicians can transpose any song into any key, which they might do in order to match the singer's intended tone or create a certain timbre in the overall sound.
 
-Chord structure matters more to the emotion and story of a song. Just like lyrics, carefully chosen chords move inside the key and change the trajectory of a song. A popular pop progression is the 145, such as in the song "Baby Shark", which became global earworm in 2019. Baby Shark is written in the key of C with a 145 chord progression, and has a predictable and calming resolution.
+Chord structure matters more to the emotion and story of a song. Just like lyrics, carefully chosen chords move inside the key and change the trajectory of a song. A popular pop progression is the 145, such as in the song "Baby Shark", which became global earworm in 2019. Baby Shark is written in the key of C with a 145 chord progression, and has a predictable pathway and calming resolution.
 
-In the absence of chord structure data, I turn to a key analysis. Despite the verdict that key differences at the emotive level are moot, we still might gain insight at the popularity level. Especially because, from a cursory look at popularity and key, there seems to be great variance between and within artists.
+In the absence of chord structure data, I turn to a key analysis. Despite the verdict that key differences at the emotive level are moot, we still might gain insight from key differences at the popularity level. Especially because, from a look at the descriptive statistics around popularity and key, there looks to be significant variance both between and within artists.
 
 Starting with the raw data, the distribution of keys for our sample of artists is predictable: keys of G major, D major and C major (more simple keys with less sharps and flats) are represented the most. The distribution of keys doesn't hold necessarily across artists, however. The experimental band Radiohead wrote more songs in the key of Asharp than Animal Collective, for instance, who write more songs in the Key of D. This begs the question of how hits are formed among artist. Does a band get better by writing a lot in one key? Could other bands be more likely to land on a hit when they write outside of their most frequented key?
 
@@ -71,7 +71,7 @@ ggplot(clean_data_count, aes(x = key_mode,
 
 ```
 
-Spotify's popularity index will give us more information than sheer key count. The popularity index is a number from 0-100 that represents the total number of plays a track has. To investigate how popularity varies with key usage, we only need the artist name, track name, key and popularity index. Let's also remove Live tracks, as the popularity of a live version might conflate the original studio recorded version. A summary statistic (the mean popularity) for each artists' key is computed, from these tracks, and converted to a decimal (probability).
+Spotify's popularity index complicates the story. The popularity index is a number from 0-100 that represents the total number of plays a track has. To investigate how popularity varies with key usage, we only need the artist name, track name, key and popularity index. Let's also remove Live tracks, as the popularity of a live version might conflate the original studio recorded version. A summary statistic (the mean popularity) for each artists' key is computed, from these tracks, and converted to a decimal (probability value).
 
 ```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 merge <- merge %>%
@@ -96,7 +96,7 @@ merged_new <- merged_new %>%
   mutate(mean_pop = mean_pop/100)
 head(merged_new)
 ```
-Next, we can visualize popularity across keys for this group of artists. Does listener demand or artist intend drive the interaction between key popularity and usage? Maybe Nirvana fans just more "down". In that case, the Eminor key would be more popular than the Eminor key among Beyonce fans? Nirvana also wrote more songs in the keys of C and Gmajor than any other key. However, their most popular songs are in more experimental keys, such as D#minor, Fminor, and E minor. This begs the question of what we come to expect from a band, and what turns out to be popular among fans. The Velvet Underground only has one song in Fminor, but the song (Sunday Morning, off of Velvet Underground and Nico) is their most popular. The Velvet Underground wrote the most songs in the key of Dmajor, and there is not much variability in this key. Could it be because they are less inclined to take risks in that key? The final section will touch on this concept of hierarchical variance. First, though, let’s use Bayesian prediction to predict hit tracks.
+Next, we can visualize popularity across keys for this group of artists. Does listener demand or artist intend drive the interaction between key popularity and usage? Maybe Nirvana fans just more "down". In that case, might the Eminor key would be more popular than the Eminor key among Beyonce fans? Nirvana also wrote more songs in the keys of C and Gmajor than any other key. However, their most popular songs are in more experimental keys, such as D#minor, Fminor, and E minor. This begs the question of what we come to expect from a band, and what turns out to be popular among fans. The Velvet Underground only has one song in Fminor, but the song (Sunday Morning, off of Velvet Underground and Nico) is their most popular. The Velvet Underground wrote the most songs in the key of Dmajor, and there is not much variability in this key. Could it be because they are less inclined to take risks in that key? The final section will touch on this concept of hierarchical variance. First, though, let’s use Bayesian prediction to predict hit tracks from keys.
 
 ```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE, include=FALSE}
 ### aggregated data
@@ -212,7 +212,7 @@ ggarrange(ggarrange(`plot Allman Brothers Band`, `plot Beyoncé`,
 
 ## Bayesian Modeling Approach
 
-I fit a two-component mixture model to the distribution of popularity averages, one that represents songs with average popularity, and another that represent hit tracks. We don't observe the grouping of songs in the data generation process (i.e. Spotify doesn't have a 'hit track' variable); therefore, this is considered a "missing data" problem. The Expectation-Maximization (EM) algorithm will help to identify which of the two components the data came from. Furthermore, since the distrubtion of popularity appears to be normal, then we choose a normal-normal mixture model.
+I fit a two-component mixture model to the distribution of popularity averages, one component that represents songs with average popularity, and another component that represent hit tracks (high popularity). We don't observe the grouping of songs in the data generation process (i.e. Spotify doesn't have a 'hit track' variable); therefore, this is considered a "missing data" problem. The Expectation-Maximization (EM) algorithm will identify which of the two components the data came from, and since the distribution of popularity appears to be normal for both components, then we choose a normal-normal mixture model.
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 load("/cloud/project/data/aggregated_data.Rdata")
@@ -235,15 +235,15 @@ $$\begin{equation}
 y =  Normal(\mu, \sigma^2)
 \end{equation}$$
 
-The model consists of 5 variance components: the mu (means) of the first two groups, the sigma squares (variances) of the two groups, and the alpha, representing the probability that any particular data point (song) is from the 1 component. A point from the 0 component is represented by 1-alpha. The five unknown parameters are given by
+The model consists of 5 components: the $\mu$'s (means) of the two groups, the $\sigma^2$'s (variances) of the two groups, and $\alpha$, representing the probability that any particular data point (song) is from the 1 (hit track) component. A point from the 0 component is represented by 1-$\alpha$. The five unknown parameters are given by
 
 $$\begin{equation}
 \theta = (\mu_1, \mu_0, \sigma_1^2, \sigma_0^2, \alpha)
 \end{equation}$$
 
-Estimating theta is difficult because we don't know which of the two components each observation came from. If we had the missing data, we could seperate these units into their respective components, but instead, we'll consider the missing data as an indicator. Each unit (song) has an indicator, equal to 1 if the observation (that song) came from group 1, and equal to 0 if the observation came from group 0. Alpha is the proportion of observations that are in group 1 and 0. In a counter-intuitive concept to much of statistical modeling, adding more "carefully chosen parameters" (i.e. these indicators) improves model estimation.
+Estimating $\theta$ proves difficult, given that we can't tell which of the two components each observation came from. If we had the missing data, we could seperate units into their respective components, but instead, we'll consider the missing data as an indicator. Each unit (song) has an indicator, equal to 1 if the observation (that song) came from group 1, and equal to 0 if the observation came from group 0. $\alpha$ is the proportion of observations that are in group 1 and 0. In a counter-intuitive concept to much of statistical modeling, adding more "carefully chosen parameters" (i.e. these indicators) improves model estimation.
 
-The likelihood for the EM is written as a function of both the observed data and the missing data, where Y is the observed data, I is missing data. Observed and missing data are both conditioned on theta, as opposed to only observed variables conditioned on theta, which is the observed data likelihood.
+The likelihood for the EM is written as a function of both the observed data and the missing data, where Y is the observed data, I is missing data. Observed and missing data are both conditioned on theta, as opposed to only observed variables conditioned on $\theta$, which is the observed data likelihood.
 
 $$\begin{equation}
 P(Y, I | \theta)
@@ -251,7 +251,7 @@ P(Y, I | \theta)
 
 We can't use the actual values (i) as the indicators are unobservable. Instead, we'll plug in their expected values (yhat) to the actual likelihood. The expected value of an indicator becomes the probability of that observation (song) being in group 1. 
 
-EM follows with two steps. To begin, with the E step, the expected indicator for every single observation (whether the observation is in the popular or un-popular group) is calculated. Next, in the M step, we take these indicator values from the E step and outputs new values for each parameters. The E step takes in current parameter values and outputs estimated values for the indicators. The M step takes in values for the indicators and outputs values for the parameters. The point of the M step is to give better values for the E step, where every step improves the estimates of the unknown. As a hill climbing algorithm, EM improves the estimates until it finds a local mode.
+EM follows with two steps. To begin, the expected indicator for every single observation (whether the observation is in the popular or un-popular group) is calculated. Next, we these indicator values abd output new values for each parameters. In other words, the E step takes in current parameter values and outputs estimated values for the indicators. The M step takes in values for the indicators and outputs values for the parameters. The point of the M step is to give better values for the E step, where every step improves the estimates of the unknown. As a hill climbing algorithm, EM improves the estimates until it finds a local mode.
 
 **Expectation Step**
 
@@ -300,9 +300,9 @@ loglik.mix <- function(y,ind,alpha,mu0,mu1,sigsq0,sigsq1){
 
 In this code sample, I comment out the iteration values, which would otherwise show the iteration plus observed data likelihood at each step. The likelihood improves until it reaches the top of the hill. 
 
-Plots for the course of the parameters is mapped below. Most of the gains in the observed data likelihood appear in the first few iterations, and after that, parameter estiamtes flatten out until the model converges. Estimates result in an overall maximum log-likelihood (=296.61) with mu0 at 0.18, mu1 at .40., and alpha at 0.40. The optimal kind of mixture components for this distribution is further mapped on to the MLE Densities histogram, where the green distribution represents hit tracks, and the red distribution, non-hit tracks.
+Plots for the course of the parameters is mapped below. Most of the gains in the observed data likelihood appear in the first few iterations, and after that, parameter estiamtes flatten out until the model converges. Estimates result in an overall maximum log-likelihood (=296.61) with $\mu_0$ at 0.18, $\mu_1$ at .40., and $\alpha$ at 0.40. The optimal kind of mixture components for this distribution is further mapped on to the MLE Densities histogram, where the green distribution represents hit tracks, and the red distribution, non-hit tracks.
 
-This model assigns a high probability to a song being a hit (at .40). Notice the overlap in distributions, as well. Songs that never reach popularity over 0.2 still have a probability of being in the hit track group. The flexibility built into the model (from assigning unique variances per group) causes this overlap. The green group (hit songs) doesn't just have a higher mean, it also has a greater variance. Next, we constrain the variances to address the overlap.
+This model troubingly assigns a high probability to a song being a hit (at .40). Also notice the overlap in distributions. Songs that never reach popularity over 0.2 have a probability of being in the hit track group. The flexibility built into the model (from assigning unique variances per group) causes this overlap. The green group (hit songs) doesn't just have a higher mean, it also has a greater variance. Contraining the variances equal will help address this overlap.
 
 ```{r fig.height=6, fig.width=7, message=FALSE, warning=FALSE, include=TRUE}
 
@@ -376,7 +376,7 @@ hist(finalindprops)
 
 
 
-We can also identify the keys for each artist with higher than 90 percent chance of being a hit. Animal Collective has 4 keys with higher than a 90% chance of being a hit. Although these songs are lower average popularity than other artists, they are, for animal collective, the highest likely songs to be hits.
+We can also identify the keys for each artist with higher than 90 percent chance of being a hit. Animal Collective has 4 keys with higher than a 90% chance of being a hit. Although these songs are lower average popularity than other artists, incorporating the priors in a Bayesian way demonstrates their likelihood at hits within this band.
 
 ```{r}
 sum(finalindprops > 0.90)
@@ -481,7 +481,7 @@ alpha
 
 **Sample Predictions**
 
-Consider the example of Modest Mouse. The Keys of C# major, E major and G# major are highly likely (over .90 posterior probability) to produce hit songs. The posterior probability of popularity for each key are mapped below. In a valuation sense, these posterior predictions and related predictive intervals are more credible to uncertainty compared to a regular confidence interval.
+Consider the example of Modest Mouse. The Keys of C# major, E major and G# major are highly likely (over .90 posterior probability) to produce hit songs. The posterior probability of popularity for each key are mapped below. In a valuation sense, these posterior predictions and related predictive intervals are more credible to uncertainty compared to a regular confidence interval that would have been achieved in a non-Bayesian framework.
 
 Recall, however, that these posterior predictions are based on the average popularity of all songs in a key. Mean popularity does not capture the variance within a key and between keys. Bayesian Hiearchical Modeling will do better at taking variance into account.
 
@@ -521,7 +521,7 @@ kbl(EM_dataframe_modest[9:16,]) %>%
 
 ## Hierarchical Bayes
 
-Notice substantial variation between each key within each artist. Our first Bayesian model assumed that the mean is the same in each key, but hiearchical bayes will allow us to have a different data situation for each key. Staying in the normal family, we think about what parameters are shared or not shared between and within groups. 
+Notice substantial variation in popularity of keys for each artist. Our first Bayesian model assumed that the mean of popularity is the same across each key for each band, but hiearchical bayes will allow us model a different data situation for each key for each band. Staying in the normal family, we will think more closely about which parameters are shared or not shared between and within groups. 
 
 ```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 
@@ -623,11 +623,11 @@ ggarrange(plot1, plot2)
 
 
 
-One observation for song i in group (key) j is represented by Yij, where yijs are normally distribetd within each group. N(mu, sigma), allows a different mean for every single group. Muj is the "key effect", where the variance in the key is attributable to that key (certain keys are more popular than others).
+One observation for song i in key j is represented by $Y_{ij}$, where $y_{ij}$ are normally distributed within each group. $N(\mu, \sigma^2)$ allows a different mean for every single group. $\mu_{j}$ is the "key effect", where the variance in the key is attributable to that key (certain keys are more popular than others).
 
 If we analyzed each key separately, that would assume that each key has nothing to do with one another. This model, however, allows us the parameterize the actual variation between each key which is shared information between the keys (due to artist affect). The shared information is reflected in the common prior on each key within each artist. Assuming a common prior for the group specific means, where each of the key effects are normally distributed around some global overall mean for the artist. Tau squared represents variation across keys, and sigma squared represents the variance of songs within that key. We are, through this approach, modeling two levels of uncertainty in the group data structure.
 
-Assume a known $\sigma^2$ and model the parameters yij as the observations i in group j and mu as the global mean:
+Assume a known $\sigma^2$ and model the parameters $y_{ij}$ as the observations i in group j and mu as the global mean:
 
 $$\begin{equation}
 y =  Normal(\mu_j, \sigma^2)
@@ -643,13 +643,13 @@ $$\begin{equation}
 p(\theta_i\mid \mu, \sigma^2,y, \tau^2) = N(\frac{\frac{1}{\sigma_i^2}y_i + \frac{1}{\tau^2}\mu}{\frac{1}{\sigma^2}+\frac{1}{\tau^2}}, \frac{1}{\frac{1}{\sigma_i^2} + \frac{1}{\tau^2}})
 \end{equation}$$
 
-Notice two overall effects: Tau squared is the between key variation, and Mu naught is the overall artist popularity mean. Conditioned on knowing the values of the group means, j, the data are conditionally independent from those global parameters. So, all of the information on the global level is encapsulated on the other j's. Hiearchical models take advantage of such conditioning. 
+Notice two overall effects: $\tau^2$ is the between key variation, and $\mu_0$ is the overall artist popularity mean. Conditioned on knowing the values of the group means, j, the data are conditionally independent from those global parameters. So, all of the information on the global level is encapsulated on the other j's. Hiearchical models take advantage of such conditioning. 
 
 The usual prior that we would use (a noninformative Jeffrey's prior) might actually look influential in this case. With two levels of unknown parameters, and only a certain amount of data to estimate, then the priors that used to be weak, or uninformative, end up now being influential. The observed data is not as strong as it used to be, and furthermore, the data signal is fairly weak on the global parameters.
 
-When calculating the posterior distributions for each key, we also note extremes of Tau squared. As Tau squared goes to infinity, then there is infinite variation between keys. In that case, we might as well model all of the keys seperately, getting the key specific effect for each. In that case, we'd center Muj at the data, analyzing every key seperately. On the other end of the extreme, Tau squared goes to 0, and this means that there is almost no variation between keys, so every key has the same effect. In reality, Tau squared will be somewhere not right at 0, or close to infinity It is a compromize between the group specific and the global mean.
+When calculating the posterior distributions for each key, we also note extremes of $\tau^2$. As $\tau^2$ goes to infinity, then there is infinite variation between keys. In that case, we might as well model all of the keys seperately, getting the key specific effect for each. In that case, we'd center $\mu_j$ at the data, analyzing every key seperately. On the other end of the extreme, $\tau^2$ goes to 0, and this means that there is almost no variation between keys, so every key has the same effect. In reality, $\tau^2$ will be somewhere not right at 0, or close to infinity It is a compromize between the group specific and the global mean.
 
-In our situation, sigma squared is known, and we will estimate the posterior by getting samples from the posterior, where the sufficient stats are just the group means. The code takes 1000 samples from the joint posterior. For each of these samples, we first sample Tau squared from the grid, and that Tau squared, loop through a sample of each of the group specific means. Small values of Tau squared, indicate pulling of the group specific mean towards a global mean (shared information between keys).
+In our situation, sigma squared is known, and we will estimate the posterior by getting samples from the posterior, where the sufficient stats are just the group means. The code takes 1000 samples from the joint posterior. For each of these samples, we first sample $\tau^2$ from the grid, and that Tau squared, loop through a sample of each of the group specific means. Small values of Tau squared, indicate pulling of the group specific mean towards a global mean (shared information between keys).
 
 
 ```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
@@ -733,7 +733,8 @@ hist(mu0.samp,main="mu0")
 hist(mu.samp[,1],main="mu group 1")
 hist(mu.samp[,2],main="mu group 2")
 ```
-A posterior comparison between keys. Posterior probability that group 5 is greater than group 6, that group 2 greater than group 1:
+
+Below, a posterior comparison between keys. Posterior probability that group 5 is greater than group 6, that group 2 greater than group 1:
 
 ```{r echo=TRUE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 par(mfrow=c(2,2))
@@ -746,7 +747,7 @@ postprob <- sum(mu.samp[,2] > mu.samp[,1])/numsamp
 postprob
 ```
 
-Using this common prior distribution, and sharing between groups, the estimates of the within group parameters are shrunk towards the global mean. The black dots are the data means, and estimates (red dots) are pulled in. For group 5, the key looks popular, but the red means not as popular as we might think. Keys that are closer to the global mean don't move as much. Extremes are pulled more.
+Using this common prior distribution, and sharing between groups, the estimates of the within group parameters are shrunk towards the global mean. Estimates (red dots) are pulled in from the data means (black dots). For group 5, the key looks popular, but the red means not as popular as we might think. Keys that are closer to the global mean don't move as much, but extremes are pulled more.
 
 
 ```{r echo=TRUE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
@@ -764,7 +765,7 @@ legend(8,2,c("Data Mean","Post Mean","Mu0"),pch=19,col=c(1,2,4))
 
 ```
 
-Sample new data point's value, from the model, which is normal for the data distribution, centered with sigma squared, using the sample of j that we already saw. This is like adding a song to an existing key. This is the distribution of their posterior popularity.
+Sample new data point's value, from the model, which is normal for the data distribution, centered with $\sigma^2$, using the sample of j that we already saw. This is like adding a song to an existing key, and evaluating the distribution of its posterior popularity.
 
 
 ```{r echo=TRUE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
@@ -810,9 +811,9 @@ hist(ystar.newgroup,main="New Group New Obs",xlim=c(xmin,xmax))
 
 ## GIBBS Hierarchical
 
-Beyond three parameters, we need something better than the grid method. MCMC harnesses the ability of optimization algorithms, such as EM, to move around the posterior space and find optimal grid values. The MCMC optimization algorithm specifically builds on each previous iteration. Using MCMC, we establish a path through the posterior instead of randomly sampling through any one of the posteriors at a time. Given our entire path, the current sample is based on the previous sample, and the distribution is based on the immediate previous sample. 
+Where the grid method for evaluating variance fails beyond three parameters, MCMC (Markov Chain Monte Carlo) saves the day. MCMC harnesses the ability of optimization algorithms, such as EM, to move around the posterior space and find optimal grid values, specifically builds on each previous iteration. Using MCMC, we establish a path through the posterior space instead of randomly sampling through any one of the posteriors at a given time. Given our entire path, the current sample is based on the previous sample, and the distribution is based on the immediate previous sample. 
 
-The workhorse of the Monte Carlo is the Gibbs Sampler, which samples from the joint posterior distribution by iteratively sampling from each distribution of each parameter, given each other parameter. Here, we start with some arbitrary values, and from those values, sample from the conditional distribution given the other values of each parameter. Given that current sample, we sample the next iteration, and cycle through all the parameters until we sample theta from the last parameter. 
+The workhorse of the Monte Carlo is the Gibbs Sampler, which samples from the joint posterior distribution by iteratively sampling from each distribution of each parameter, given another parameter. Here, we start with some arbitrary values, and from those values, sample from the conditional distribution given the other values of each parameter. Given that current sample, we sample the next iteration, and cycle through all the parameters until $\theta$ is sampled from the last parameter. 
 
 ```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 
@@ -874,9 +875,9 @@ for (i in 1:numsamp){
 
 ```
 
-Markov Chain builds dependence on the previous sample: both a blessing and a curse. While we are moving based on the last move (as in a random walk), we can climb the hill of the posterior distrinution from any starting point. However, we must address the dependence on prior values, first by manually evaluating convergence byvisualizing where the chains come together, and second by reducing the autocorrelation of the paraemter values in each chain. 
+The dependence on the previous sample that Markov Chain relies upon is both a blessing and a curse. Since the algorithm moves based on the last move (as in the case of a random walk), we can climb the hill of the posterior distribution from any starting point. However, dependence on prior values is an obvious tradeoff, in that it might result in autocorrelation of estimates. To address this issue, we manually evaluate convergence by visualizing where the chains come together, and then reduce autocorrelation of the paraemter values in each chain. 
 
-In the sample below, we run the GIBBS to sample theta from the i'th iteration, for 10,000 iterations. We establish convergence , seeing whether the black and red lines "come together". Takes about 200 iterations. Define the pre-defined parts as burn in. In other words, throw out a whole 100 values of the chain. The first 100 values are "throw out" as the burn in. For each parameter, we throw out the first 100, and then consider these to be confident samples from the posterior. 
+In the sample below, the GIBBS samples thetas for 10,000 iterations. We establish convergence, seeing whether the black and red lines "come together", which here takes about 200 iterations. The first 100 values are thrown-out as part of the burn-in sample.
 
 ```{r echo=FALSE, fig.height=6, fig.width=7, message=FALSE, warning=FALSE}
 
