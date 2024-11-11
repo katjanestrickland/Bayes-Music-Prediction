@@ -3,7 +3,7 @@ With a small sample of discographies pulled from the Spotify API, I build two po
 
 ### Project Page
 
-[Markdown Link](https://katjanewilson.github.io/Bayes-Music-Prediction/)
+[Markdown Link](https://katjanestrickland.github.io/Bayes-Music-Prediction/)
 
 
 
